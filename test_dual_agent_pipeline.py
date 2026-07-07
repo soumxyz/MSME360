@@ -1,7 +1,9 @@
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
 """
 Comprehensive Dual-Agent Integration Test Pipeline
 ===================================================
-Tests data flow: Dataset → Financial Agent (Agent 1) → Risk Intelligence Agent
+Tests data flow: Dataset -> Financial Agent (Agent 1) -> Risk Intelligence Agent
 
 This script:
 1. Extracts business data from Dataset (uses MSME001 as test case)
@@ -74,9 +76,9 @@ class DualAgentTester:
                 if row["Business_ID"] == business_id:
                     gst_rows.append(row)
         
-        print(f"   ✓ Loaded {len(bank_rows)} bank transactions")
-        print(f"   ✓ Loaded {len(gst_rows)} GST summary records")
-        print(f"   ✓ Business: {business_info['Business_Name']} ({business_info['Owner_Name']})")
+        print(f"   [PASS] Loaded {len(bank_rows)} bank transactions")
+        print(f"   [PASS] Loaded {len(gst_rows)} GST summary records")
+        print(f"   [PASS] Business: {business_info['Business_Name']} ({business_info['Owner_Name']})")
         
         return bank_rows, gst_rows, business_info
     
@@ -117,7 +119,7 @@ class DualAgentTester:
         }
         results.append(test1_result)
         
-        status_symbol = "✓" if test1_result['passed'] else "✗"
+        status_symbol = "[PASS]" if test1_result['passed'] else "[FAIL]"
         print(f"   {status_symbol} Readiness: {report1['readiness']}")
         print(f"   {status_symbol} Errors: {len(report1['errors'])}")
         print(f"   {status_symbol} Warnings: {len(report1['warnings'])}")
@@ -139,7 +141,7 @@ class DualAgentTester:
         }
         results.append(test2_result)
         
-        status_symbol = "✓" if test2_result['passed'] else "✗"
+        status_symbol = "[PASS]" if test2_result['passed'] else "[FAIL]"
         print(f"   {status_symbol} Readiness: {report2['readiness']} (Expected: RED)")
         print(f"   {status_symbol} Error captured: {'Yes' if report2['errors'] else 'No'}")
         
@@ -159,7 +161,7 @@ class DualAgentTester:
         }
         results.append(test3_result)
         
-        status_symbol = "✓" if test3_result['passed'] else "✗"
+        status_symbol = "[PASS]" if test3_result['passed'] else "[FAIL]"
         print(f"   {status_symbol} Readiness: {report3['readiness']} (Expected: RED)")
         print(f"   {status_symbol} Coverage days: {report3['metrics'].get('bank_coverage_days', 0)}")
         
@@ -182,7 +184,7 @@ class DualAgentTester:
         }
         results.append(test4_result)
         
-        status_symbol = "✓" if test4_result['passed'] else "✗"
+        status_symbol = "[PASS]" if test4_result['passed'] else "[FAIL]"
         print(f"   {status_symbol} Readiness: {report4['readiness']} (Expected: YELLOW)")
         print(f"   {status_symbol} Warnings: {len(report4['warnings'])}")
         
@@ -205,7 +207,7 @@ class DualAgentTester:
         }
         results.append(test5_result)
         
-        status_symbol = "✓" if test5_result['passed'] else "✗"
+        status_symbol = "[PASS]" if test5_result['passed'] else "[FAIL]"
         print(f"   {status_symbol} Readiness: {report5['readiness']} (Expected: RED)")
         print(f"   {status_symbol} Integrity compromised: {'Yes' if report5['errors'] else 'No'}")
         
@@ -224,7 +226,7 @@ class DualAgentTester:
         }
         results.append(test6_result)
         
-        status_symbol = "✓" if test6_result['passed'] else "✗"
+        status_symbol = "[PASS]" if test6_result['passed'] else "[FAIL]"
         print(f"   {status_symbol} Readiness: {report6['readiness']} (Expected: RED)")
         
         # TEST 7: No GST Summary (YELLOW expected)
@@ -241,7 +243,7 @@ class DualAgentTester:
         }
         results.append(test7_result)
         
-        status_symbol = "✓" if test7_result['passed'] else "✗"
+        status_symbol = "[PASS]" if test7_result['passed'] else "[FAIL]"
         print(f"   {status_symbol} Readiness: {report7['readiness']}")
         print(f"   {status_symbol} GST warning issued: {'Yes' if report7['warnings'] else 'No'}")
         
@@ -263,7 +265,7 @@ class DualAgentTester:
         }
         results.append(test8_result)
         
-        status_symbol = "✓" if test8_result['passed'] else "✗"
+        status_symbol = "[PASS]" if test8_result['passed'] else "[FAIL]"
         print(f"   {status_symbol} Readiness: {report8['readiness']} (Expected: RED)")
         
         # Summary
@@ -272,8 +274,8 @@ class DualAgentTester:
         print(f"{'='*80}")
         passed_tests = sum(1 for r in results if r['passed'])
         total_tests = len(results)
-        print(f"✓ Passed: {passed_tests}/{total_tests} tests")
-        print(f"✗ Failed: {total_tests - passed_tests}/{total_tests} tests")
+        print(f"[PASS] Passed: {passed_tests}/{total_tests} tests")
+        print(f"[FAIL] Failed: {total_tests - passed_tests}/{total_tests} tests")
         print(f"Success Rate: {(passed_tests/total_tests)*100:.1f}%")
         
         self.test_results['financial_agent_tests'] = results
@@ -303,11 +305,11 @@ class DualAgentTester:
                     MSMEInput, GSTData, UPITransaction, AccountAggregatorData, 
                     EPFOData, BankData
                 )
-                print("   ✓ PASSED: All modules imported successfully")
+                print("   [PASS] PASSED: All modules imported successfully")
                 import_test = {"test_name": "Module Import", "passed": True, "error": None}
                 tests.append(import_test)
             except Exception as e:
-                print(f"   ✗ FAILED: {str(e)}")
+                print(f"   [FAIL] FAILED: {str(e)}")
                 import_test = {"test_name": "Module Import", "passed": False, "error": str(e)}
                 tests.append(import_test)
                 return {"total_tests": 1, "passed": 0, "failed": 1, "tests": tests}
@@ -321,9 +323,9 @@ class DualAgentTester:
             # Format: ABCDE1234F
             synthetic_pan = f"ABCDE1234F"
             
-            print(f"   ✓ Business: {business_info['Business_Name']} ({business_info['Owner_Name']})")
-            print(f"   ✓ GSTIN (synthetic): {synthetic_gstin}")
-            print(f"   ✓ PAN (synthetic): {synthetic_pan}")
+            print(f"   [PASS] Business: {business_info['Business_Name']} ({business_info['Owner_Name']})")
+            print(f"   [PASS] GSTIN (synthetic): {synthetic_gstin}")
+            print(f"   [PASS] PAN (synthetic): {synthetic_pan}")
             
             # TEST 2: Create GSTData
             print("\n[TEST 2] GSTData Schema Validation")
@@ -338,11 +340,11 @@ class DualAgentTester:
                     filing_history=gst_filing_history,
                     annual_turnover=gst_annual_turnover
                 )
-                print(f"   ✓ PASSED: GSTData created ({len(gst_monthly_revenue)} months)")
+                print(f"   [PASS] PASSED: GSTData created ({len(gst_monthly_revenue)} months)")
                 gst_test = {"test_name": "GSTData Schema", "passed": True, "error": None}
                 tests.append(gst_test)
             except Exception as e:
-                print(f"   ✗ FAILED: {str(e)}")
+                print(f"   [FAIL] FAILED: {str(e)}")
                 gst_test = {"test_name": "GSTData Schema", "passed": False, "error": str(e)}
                 tests.append(gst_test)
             
@@ -381,11 +383,11 @@ class DualAgentTester:
                     statement_end_date=statement_end
                 )
                 days_coverage = (statement_end - statement_start).days
-                print(f"   ✓ PASSED: AccountAggregatorData created ({len(sorted_months)} months, {days_coverage} days)")
+                print(f"   [PASS] PASSED: AccountAggregatorData created ({len(sorted_months)} months, {days_coverage} days)")
                 account_test = {"test_name": "AccountAggregatorData Schema", "passed": True, "error": None}
                 tests.append(account_test)
             except Exception as e:
-                print(f"   ✗ FAILED: {str(e)}")
+                print(f"   [FAIL] FAILED: {str(e)}")
                 account_test = {"test_name": "AccountAggregatorData Schema", "passed": False, "error": str(e)}
                 tests.append(account_test)
             
@@ -409,11 +411,11 @@ class DualAgentTester:
                         counterparty="VENDOR001"
                     ))
                 
-                print(f"   ✓ PASSED: Created {len(upi_transactions)} UPI transactions")
+                print(f"   [PASS] PASSED: Created {len(upi_transactions)} UPI transactions")
                 upi_test = {"test_name": "UPI Transaction Schema", "passed": True, "error": None}
                 tests.append(upi_test)
             except Exception as e:
-                print(f"   ✗ FAILED: {str(e)}")
+                print(f"   [FAIL] FAILED: {str(e)}")
                 upi_test = {"test_name": "UPI Transaction Schema", "passed": False, "error": str(e)}
                 tests.append(upi_test)
             
@@ -426,11 +428,11 @@ class DualAgentTester:
                 epfo_data = EPFOData(
                     monthly_employee_counts=monthly_employee_counts
                 )
-                print(f"   ✓ PASSED: EPFOData created ({len(monthly_employee_counts)} months, {employee_count} employees)")
+                print(f"   [PASS] PASSED: EPFOData created ({len(monthly_employee_counts)} months, {employee_count} employees)")
                 epfo_test = {"test_name": "EPFOData Schema", "passed": True, "error": None}
                 tests.append(epfo_test)
             except Exception as e:
-                print(f"   ✗ FAILED: {str(e)}")
+                print(f"   [FAIL] FAILED: {str(e)}")
                 epfo_test = {"test_name": "EPFOData Schema", "passed": False, "error": str(e)}
                 tests.append(epfo_test)
             
@@ -443,11 +445,11 @@ class DualAgentTester:
                     loan_amounts=[float(business_info.get("Working_Capital_INR", 0))] if existing_emi > 0 else [],
                     account_number=f"ACC{business_id}"
                 )
-                print(f"   ✓ PASSED: BankData created (EMI: ₹{existing_emi:,.2f})")
+                print(f"   [PASS] PASSED: BankData created (EMI: ₹{existing_emi:,.2f})")
                 bank_test = {"test_name": "BankData Schema", "passed": True, "error": None}
                 tests.append(bank_test)
             except Exception as e:
-                print(f"   ✗ FAILED: {str(e)}")
+                print(f"   [FAIL] FAILED: {str(e)}")
                 bank_test = {"test_name": "BankData Schema", "passed": False, "error": str(e)}
                 tests.append(bank_test)
             
@@ -468,14 +470,14 @@ class DualAgentTester:
                     epfo_data=epfo_data,
                     bank_data=bank_data
                 )
-                print(f"   ✓ PASSED: Complete MSMEInput validated for {business_id}")
+                print(f"   [PASS] PASSED: Complete MSMEInput validated for {business_id}")
                 print(f"      Business Age: {business_age_years} years")
                 print(f"      Annual Turnover: ₹{gst_annual_turnover:,.2f}")
                 print(f"      Bank Coverage: {days_coverage} days")
                 msme_test = {"test_name": "Complete MSMEInput Schema", "passed": True, "error": None}
                 tests.append(msme_test)
             except Exception as e:
-                print(f"   ✗ FAILED: {str(e)}")
+                print(f"   [FAIL] FAILED: {str(e)}")
                 import traceback
                 traceback.print_exc()
                 msme_test = {"test_name": "Complete MSMEInput Schema", "passed": False, "error": str(e)}
@@ -487,8 +489,8 @@ class DualAgentTester:
             print(f"\n{'='*80}")
             print("RISK INTELLIGENCE AGENT TEST SUMMARY")
             print(f"{'='*80}")
-            print(f"✓ Passed: {passed_count}/{len(tests)} tests")
-            print(f"✗ Failed: {len(tests) - passed_count}/{len(tests)} tests")
+            print(f"[PASS] Passed: {passed_count}/{len(tests)} tests")
+            print(f"[FAIL] Failed: {len(tests) - passed_count}/{len(tests)} tests")
             
             if passed_count == len(tests):
                 print(f"\n✅ SUCCESS: Data from Financial Agent is fully compatible with Risk Intelligence Agent!")
@@ -507,7 +509,7 @@ class DualAgentTester:
             }
             
         except Exception as e:
-            print(f"\n✗ UNEXPECTED ERROR: {str(e)}")
+            print(f"\n[FAIL] UNEXPECTED ERROR: {str(e)}")
             import traceback
             traceback.print_exc()
             return {
@@ -541,8 +543,8 @@ class DualAgentTester:
             # Format: ABCDE1234F
             synthetic_pan = f"{business_id[:5].upper()}1234F"
             
-            print(f"   ✓ GSTIN (synthetic): {synthetic_gstin}")
-            print(f"   ✓ PAN (synthetic): {synthetic_pan}")
+            print(f"   [PASS] GSTIN (synthetic): {synthetic_gstin}")
+            print(f"   [PASS] PAN (synthetic): {synthetic_pan}")
             
             # Convert GST data
             gst_monthly_revenue = [float(row["Sales"]) for row in gst_rows]
@@ -646,16 +648,16 @@ class DualAgentTester:
                 bank_data=bank_data
             )
             
-            print(f"   ✓ Created MSMEInput payload for {business_id}")
+            print(f"   [PASS] Created MSMEInput payload for {business_id}")
             
             # TEST 1: Schema Validation
             print("\n[TEST 1] Pydantic Schema Validation")
             try:
                 # Already validated by creating MSMEInput
-                print("   ✓ PASSED: Schema validation successful")
+                print("   [PASS] PASSED: Schema validation successful")
                 schema_test = {"test_name": "Schema Validation", "passed": True, "error": None}
             except Exception as e:
-                print(f"   ✗ FAILED: {str(e)}")
+                print(f"   [FAIL] FAILED: {str(e)}")
                 schema_test = {"test_name": "Schema Validation", "passed": False, "error": str(e)}
                 return {"tests": [schema_test], "overall_status": "FAILED"}
             
@@ -665,13 +667,13 @@ class DualAgentTester:
                 validator = DataValidator()
                 validation_result = validator.validate(msme_input)
                 if validation_result.is_valid:
-                    print("   ✓ PASSED: Data validation successful")
+                    print("   [PASS] PASSED: Data validation successful")
                     validator_test = {"test_name": "Data Validator", "passed": True, "error": None}
                 else:
-                    print(f"   ✗ FAILED: {validation_result.errors}")
+                    print(f"   [FAIL] FAILED: {validation_result.errors}")
                     validator_test = {"test_name": "Data Validator", "passed": False, "error": validation_result.errors}
             except Exception as e:
-                print(f"   ✗ FAILED: {str(e)}")
+                print(f"   [FAIL] FAILED: {str(e)}")
                 validator_test = {"test_name": "Data Validator", "passed": False, "error": str(e)}
             
             # TEST 3: Feature Engineering
@@ -679,12 +681,12 @@ class DualAgentTester:
             try:
                 engineer = FeatureEngineer()
                 features = engineer.engineer_features(msme_input)
-                print(f"   ✓ PASSED: Generated feature vector")
+                print(f"   [PASS] PASSED: Generated feature vector")
                 print(f"      Feature values: {features.values}")
                 print(f"      Feature names: {features.feature_names}")
                 feature_test = {"test_name": "Feature Engineering", "passed": True, "features": features.values}
             except Exception as e:
-                print(f"   ✗ FAILED: {str(e)}")
+                print(f"   [FAIL] FAILED: {str(e)}")
                 import traceback
                 traceback.print_exc()
                 feature_test = {"test_name": "Feature Engineering", "passed": False, "error": str(e)}
@@ -695,14 +697,14 @@ class DualAgentTester:
                 policy_engine = PolicyEngine()
                 policy_result = policy_engine.evaluate(msme_input, features)
                 violations = [v.rule_name for v in policy_result.violations]
-                print(f"   ✓ PASSED: Evaluated policies")
+                print(f"   [PASS] PASSED: Evaluated policies")
                 print(f"      Violations: {len(violations)}")
                 if violations:
                     for v in violations[:3]:
                         print(f"         - {v}")
                 policy_test = {"test_name": "Policy Engine", "passed": True, "violations": violations}
             except Exception as e:
-                print(f"   ✗ FAILED: {str(e)}")
+                print(f"   [FAIL] FAILED: {str(e)}")
                 import traceback
                 traceback.print_exc()
                 policy_test = {"test_name": "Policy Engine", "passed": False, "error": str(e)}
@@ -714,14 +716,14 @@ class DualAgentTester:
                 fraud_result = fraud_engine.detect_fraud(msme_input)
                 fraud_flags = {flag.fraud_type: flag.severity for flag in fraud_result.fraud_flags}
                 flagged_count = len(fraud_result.fraud_flags)
-                print(f"   ✓ PASSED: Fraud detection complete")
+                print(f"   [PASS] PASSED: Fraud detection complete")
                 print(f"      Flags raised: {flagged_count}")
                 if flagged_count > 0:
                     for flag_type, severity in list(fraud_flags.items())[:3]:
                         print(f"         - {flag_type}: {severity}")
                 fraud_test = {"test_name": "Fraud Detection", "passed": True, "fraud_flags": fraud_flags}
             except Exception as e:
-                print(f"   ✗ FAILED: {str(e)}")
+                print(f"   [FAIL] FAILED: {str(e)}")
                 import traceback
                 traceback.print_exc()
                 fraud_test = {"test_name": "Fraud Detection", "passed": False, "error": str(e)}
@@ -733,8 +735,8 @@ class DualAgentTester:
             print(f"\n{'='*80}")
             print("RISK INTELLIGENCE AGENT TEST SUMMARY")
             print(f"{'='*80}")
-            print(f"✓ Passed: {passed_count}/{len(tests)} tests")
-            print(f"✗ Failed: {len(tests) - passed_count}/{len(tests)} tests")
+            print(f"[PASS] Passed: {passed_count}/{len(tests)} tests")
+            print(f"[FAIL] Failed: {len(tests) - passed_count}/{len(tests)} tests")
             
             self.test_results['risk_agent_tests'] = tests
             
@@ -747,7 +749,7 @@ class DualAgentTester:
             }
             
         except ImportError as e:
-            print(f"\n✗ FAILED TO IMPORT RISK AGENT: {str(e)}")
+            print(f"\n[FAIL] FAILED TO IMPORT RISK AGENT: {str(e)}")
             print("   Make sure Risk Intelligence Agent is properly installed.")
             return {
                 "total_tests": 0,
@@ -756,7 +758,7 @@ class DualAgentTester:
                 "error": f"Import error: {str(e)}"
             }
         except Exception as e:
-            print(f"\n✗ UNEXPECTED ERROR: {str(e)}")
+            print(f"\n[FAIL] UNEXPECTED ERROR: {str(e)}")
             import traceback
             traceback.print_exc()
             return {
@@ -771,7 +773,7 @@ class DualAgentTester:
         print(f"\n{'#'*80}")
         print("DUAL-AGENT INTEGRATION TEST PIPELINE")
         print(f"{'#'*80}")
-        print(f"Testing: Financial Agent → Risk Intelligence Agent")
+        print(f"Testing: Financial Agent -> Risk Intelligence Agent")
         print(f"Business ID: {business_id}")
         print(f"{'#'*80}")
         
@@ -841,7 +843,7 @@ class DualAgentTester:
             return True
             
         except Exception as e:
-            print(f"\n✗ PIPELINE FAILED: {str(e)}")
+            print(f"\n[FAIL] PIPELINE FAILED: {str(e)}")
             import traceback
             traceback.print_exc()
             return False
