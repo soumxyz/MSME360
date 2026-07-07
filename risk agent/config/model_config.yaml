@@ -1,0 +1,34 @@
+model:
+  type: xgboost
+  path: models/xgb_risk_v1.pkl
+  version: "1.0.0"
+  features:
+    - revenue_growth_percentage
+    - average_monthly_balance
+    - cash_flow_ratio
+    - upi_transaction_frequency
+    - employee_growth_percentage
+    - emi_to_revenue_ratio
+    - business_age_months
+    - digital_payment_ratio
+
+normalization:
+  revenue_growth_percentage: [-100, 500]
+  average_monthly_balance: [0, 10000000]
+  cash_flow_ratio: [-1, 1]
+  upi_transaction_frequency: [0, 1000]
+  employee_growth_percentage: [-100, 500]
+  emi_to_revenue_ratio: [0, 1]
+  business_age_months: [0, 600]
+  digital_payment_ratio: [0, 1]
+
+cache:
+  ttl:
+    validated_data: 86400  # 24 hours
+    feature_vector: 3600   # 1 hour
+    prediction: 3600       # 1 hour
+    gst_data: 3600         # 1 hour
+    upi_data: 3600         # 1 hour
+    aa_data: 21600         # 6 hours
+    epfo_data: 86400       # 24 hours
+    bank_data: 86400       # 24 hours

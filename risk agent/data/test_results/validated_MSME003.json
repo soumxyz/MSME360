@@ -1,0 +1,608 @@
+{
+  "gstin": "09KANPU0003F1Z5",
+  "pan": "KANPU0003F",
+  "business_registration_date": "2012-07-10",
+  "gst_data": {
+    "gstin": "09KANPU0003F1Z5",
+    "monthly_revenue": [
+      327183.54,
+      365390.57,
+      396311.56,
+      534785.04,
+      539967.25,
+      346318.18,
+      320047.0,
+      318157.02,
+      311286.27,
+      314783.08,
+      351803.76,
+      300964.17
+    ],
+    "filing_history": [
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false
+    ],
+    "annual_turnover": 11006711.98
+  },
+  "upi_transactions": [
+    {
+      "amount": 870.5,
+      "timestamp": "2025-07-01T00:00:00",
+      "counterparty": "UPI CR/MOBIKWIK/CUST2496"
+    },
+    {
+      "amount": 1987.58,
+      "timestamp": "2025-07-01T00:00:00",
+      "counterparty": "UPI CR/BHIM/CUST6051"
+    },
+    {
+      "amount": 1148.57,
+      "timestamp": "2025-07-02T00:00:00",
+      "counterparty": "UPI CR/GPAY/CUST5414"
+    },
+    {
+      "amount": 3248.12,
+      "timestamp": "2025-07-02T00:00:00",
+      "counterparty": "UPI CR/INSTAMOJO/CUST4733"
+    },
+    {
+      "amount": 17185.61,
+      "timestamp": "2025-07-03T00:00:00",
+      "counterparty": "UPI DR/SANGAM MARKETING/RM PURCHASE"
+    },
+    {
+      "amount": 23618.64,
+      "timestamp": "2025-07-04T00:00:00",
+      "counterparty": "RENT PAYMENT/OFFICE"
+    },
+    {
+      "amount": 1974.81,
+      "timestamp": "2025-07-04T00:00:00",
+      "counterparty": "UPI CR/AMAZONPAY/CUST4111"
+    },
+    {
+      "amount": 2170.25,
+      "timestamp": "2025-07-05T00:00:00",
+      "counterparty": "UPI CR/GPAY/CUST8806"
+    },
+    {
+      "amount": 777.18,
+      "timestamp": "2025-07-06T00:00:00",
+      "counterparty": "UPI CR/MOBIKWIK/CUST7494"
+    },
+    {
+      "amount": 1854.51,
+      "timestamp": "2025-07-07T00:00:00",
+      "counterparty": "UPI CR/AMAZONPAY/CUST3638"
+    },
+    {
+      "amount": 3834.29,
+      "timestamp": "2025-07-07T00:00:00",
+      "counterparty": "UPI CR/MOBIKWIK/CUST9493"
+    },
+    {
+      "amount": 3041.12,
+      "timestamp": "2025-07-08T00:00:00",
+      "counterparty": "UPI CR/RAZORPAY/CUST6617"
+    },
+    {
+      "amount": 2408.87,
+      "timestamp": "2025-07-08T00:00:00",
+      "counterparty": "UPI CR/PHONEPE/CUST5592"
+    },
+    {
+      "amount": 3337.24,
+      "timestamp": "2025-07-08T00:00:00",
+      "counterparty": "UPI CR/AMAZONPAY/CUST2667"
+    },
+    {
+      "amount": 755.19,
+      "timestamp": "2025-07-11T00:00:00",
+      "counterparty": "UPI CR/BHIM/CUST5270"
+    },
+    {
+      "amount": 1470.2,
+      "timestamp": "2025-07-11T00:00:00",
+      "counterparty": "UPI CR/PAYU/CUST7235"
+    },
+    {
+      "amount": 1442.43,
+      "timestamp": "2025-07-12T00:00:00",
+      "counterparty": "UPI CR/MOBIKWIK/CUST7123"
+    },
+    {
+      "amount": 1357.55,
+      "timestamp": "2025-07-12T00:00:00",
+      "counterparty": "UPI CR/INSTAMOJO/CUST1818"
+    },
+    {
+      "amount": 16512.6,
+      "timestamp": "2025-07-12T00:00:00",
+      "counterparty": "UPI DR/PRATAP TRADERS/RM PURCHASE"
+    },
+    {
+      "amount": 3136.32,
+      "timestamp": "2025-07-12T00:00:00",
+      "counterparty": "MAINTENANCE/SERVICE"
+    },
+    {
+      "amount": 4156.73,
+      "timestamp": "2025-07-12T00:00:00",
+      "counterparty": "INTERNET/BSNL"
+    },
+    {
+      "amount": 1842.09,
+      "timestamp": "2025-07-13T00:00:00",
+      "counterparty": "UPI CR/CRED/CUST7428"
+    },
+    {
+      "amount": 861.94,
+      "timestamp": "2025-07-13T00:00:00",
+      "counterparty": "UPI CR/BHIM/CUST2076"
+    },
+    {
+      "amount": 1797.54,
+      "timestamp": "2025-07-16T00:00:00",
+      "counterparty": "UPI CR/INSTAMOJO/CUST5518"
+    },
+    {
+      "amount": 16495.8,
+      "timestamp": "2025-07-17T00:00:00",
+      "counterparty": "UPI DR/BALAJI TRADERS/BILL5583"
+    },
+    {
+      "amount": 757.05,
+      "timestamp": "2025-07-18T00:00:00",
+      "counterparty": "UPI CR/BHIM/CUST6195"
+    },
+    {
+      "amount": 3347.23,
+      "timestamp": "2025-07-18T00:00:00",
+      "counterparty": "UPI CR/PHONEPE/CUST2216"
+    },
+    {
+      "amount": 1405.27,
+      "timestamp": "2025-07-18T00:00:00",
+      "counterparty": "MISC/COURIER"
+    },
+    {
+      "amount": 3889.22,
+      "timestamp": "2025-07-19T00:00:00",
+      "counterparty": "UPI CR/GPAY/CUST2218"
+    },
+    {
+      "amount": 665.55,
+      "timestamp": "2025-07-20T00:00:00",
+      "counterparty": "UPI CR/PAYU/CUST3818"
+    },
+    {
+      "amount": 1812.52,
+      "timestamp": "2025-07-20T00:00:00",
+      "counterparty": "UPI CR/INSTAMOJO/CUST4830"
+    },
+    {
+      "amount": 1521.29,
+      "timestamp": "2025-07-21T00:00:00",
+      "counterparty": "UPI CR/CRED/CUST8934"
+    },
+    {
+      "amount": 3225.53,
+      "timestamp": "2025-07-21T00:00:00",
+      "counterparty": "UPI CR/PAYU/CUST4380"
+    },
+    {
+      "amount": 3069.8,
+      "timestamp": "2025-07-22T00:00:00",
+      "counterparty": "UPI CR/PAYU/CUST4359"
+    },
+    {
+      "amount": 7134.74,
+      "timestamp": "2025-07-23T00:00:00",
+      "counterparty": "UPI DR/NEW BHARAT AGENCY/RM PURCHASE"
+    },
+    {
+      "amount": 1626.34,
+      "timestamp": "2025-07-24T00:00:00",
+      "counterparty": "UPI CR/INSTAMOJO/CUST1493"
+    },
+    {
+      "amount": 1216.19,
+      "timestamp": "2025-07-25T00:00:00",
+      "counterparty": "UPI CR/INSTAMOJO/CUST8520"
+    },
+    {
+      "amount": 2249.66,
+      "timestamp": "2025-07-28T00:00:00",
+      "counterparty": "UPI CR/CRED/CUST4267"
+    },
+    {
+      "amount": 1572.55,
+      "timestamp": "2025-07-30T00:00:00",
+      "counterparty": "UPI CR/MOBIKWIK/CUST4634"
+    },
+    {
+      "amount": 3184.97,
+      "timestamp": "2025-08-01T00:00:00",
+      "counterparty": "UPI CR/AMAZONPAY/CUST7498"
+    },
+    {
+      "amount": 908.43,
+      "timestamp": "2025-08-02T00:00:00",
+      "counterparty": "OFFICE SUP/DTDC"
+    },
+    {
+      "amount": 2166.04,
+      "timestamp": "2025-08-03T00:00:00",
+      "counterparty": "UPI CR/BHIM/CUST3054"
+    },
+    {
+      "amount": 4334.84,
+      "timestamp": "2025-08-06T00:00:00",
+      "counterparty": "UPI CR/INSTAMOJO/CUST6028"
+    },
+    {
+      "amount": 3965.99,
+      "timestamp": "2025-08-06T00:00:00",
+      "counterparty": "UPI CR/AMAZONPAY/CUST8460"
+    },
+    {
+      "amount": 1158.02,
+      "timestamp": "2025-08-06T00:00:00",
+      "counterparty": "UPI CR/RAZORPAY/CUST4955"
+    },
+    {
+      "amount": 1258.63,
+      "timestamp": "2025-08-07T00:00:00",
+      "counterparty": "MAINTENANCE/SERVICE"
+    },
+    {
+      "amount": 4677.86,
+      "timestamp": "2025-08-07T00:00:00",
+      "counterparty": "UPI CR/PAYTM/CUST2910"
+    },
+    {
+      "amount": 997.19,
+      "timestamp": "2025-08-09T00:00:00",
+      "counterparty": "UPI CR/CRED/CUST7176"
+    },
+    {
+      "amount": 2211.59,
+      "timestamp": "2025-08-09T00:00:00",
+      "counterparty": "UPI CR/INSTAMOJO/CUST8544"
+    },
+    {
+      "amount": 4086.75,
+      "timestamp": "2025-08-09T00:00:00",
+      "counterparty": "UPI CR/PAYTM/CUST4816"
+    },
+    {
+      "amount": 1207.75,
+      "timestamp": "2025-08-10T00:00:00",
+      "counterparty": "UPI CR/MOBIKWIK/CUST1759"
+    },
+    {
+      "amount": 1408.2,
+      "timestamp": "2025-08-10T00:00:00",
+      "counterparty": "INTERNET/ACT"
+    },
+    {
+      "amount": 1560.36,
+      "timestamp": "2025-08-11T00:00:00",
+      "counterparty": "MISC/COURIER"
+    },
+    {
+      "amount": 2347.7,
+      "timestamp": "2025-08-13T00:00:00",
+      "counterparty": "UPI CR/MOBIKWIK/CUST7756"
+    },
+    {
+      "amount": 7543.52,
+      "timestamp": "2025-08-14T00:00:00",
+      "counterparty": "UPI DR/SANGAM MARKETING/RM PURCHASE"
+    },
+    {
+      "amount": 2311.99,
+      "timestamp": "2025-08-16T00:00:00",
+      "counterparty": "UPI CR/MOBIKWIK/CUST7474"
+    },
+    {
+      "amount": 1065.27,
+      "timestamp": "2025-08-17T00:00:00",
+      "counterparty": "UPI CR/BHIM/CUST4895"
+    },
+    {
+      "amount": 2480.74,
+      "timestamp": "2025-08-18T00:00:00",
+      "counterparty": "UPI CR/PHONEPE/CUST8643"
+    },
+    {
+      "amount": 4134.24,
+      "timestamp": "2025-08-19T00:00:00",
+      "counterparty": "UPI CR/PAYU/CUST8636"
+    },
+    {
+      "amount": 4355.31,
+      "timestamp": "2025-08-19T00:00:00",
+      "counterparty": "UPI CR/AMAZONPAY/CUST8591"
+    },
+    {
+      "amount": 4878.32,
+      "timestamp": "2025-08-20T00:00:00",
+      "counterparty": "UPI CR/INSTAMOJO/CUST4750"
+    },
+    {
+      "amount": 2701.73,
+      "timestamp": "2025-08-20T00:00:00",
+      "counterparty": "UPI CR/PAYTM/CUST4044"
+    },
+    {
+      "amount": 11459.19,
+      "timestamp": "2025-08-21T00:00:00",
+      "counterparty": "UPI DR/SANGAM MARKETING/BILL4255"
+    },
+    {
+      "amount": 4502.51,
+      "timestamp": "2025-08-21T00:00:00",
+      "counterparty": "UPI CR/AMAZONPAY/CUST8898"
+    },
+    {
+      "amount": 10305.08,
+      "timestamp": "2025-08-21T00:00:00",
+      "counterparty": "UPI DR/ANNAPURNA SUPPLIES/BILL8053"
+    },
+    {
+      "amount": 4213.1,
+      "timestamp": "2025-08-23T00:00:00",
+      "counterparty": "UPI CR/PAYU/CUST2222"
+    },
+    {
+      "amount": 2568.16,
+      "timestamp": "2025-08-25T00:00:00",
+      "counterparty": "UPI CR/PAYTM/CUST7113"
+    },
+    {
+      "amount": 2537.17,
+      "timestamp": "2025-08-26T00:00:00",
+      "counterparty": "UPI CR/PAYTM/CUST8793"
+    },
+    {
+      "amount": 1076.72,
+      "timestamp": "2025-08-26T00:00:00",
+      "counterparty": "UPI CR/CRED/CUST1449"
+    },
+    {
+      "amount": 3182.31,
+      "timestamp": "2025-08-26T00:00:00",
+      "counterparty": "UPI CR/MOBIKWIK/CUST1013"
+    },
+    {
+      "amount": 764.71,
+      "timestamp": "2025-08-27T00:00:00",
+      "counterparty": "UPI CR/CRED/CUST7174"
+    },
+    {
+      "amount": 1884.08,
+      "timestamp": "2025-08-27T00:00:00",
+      "counterparty": "UPI CR/CRED/CUST9758"
+    },
+    {
+      "amount": 3934.45,
+      "timestamp": "2025-08-28T00:00:00",
+      "counterparty": "UPI CR/PAYU/CUST8903"
+    },
+    {
+      "amount": 2430.15,
+      "timestamp": "2025-08-29T00:00:00",
+      "counterparty": "UPI CR/GPAY/CUST2285"
+    },
+    {
+      "amount": 1888.05,
+      "timestamp": "2025-08-31T00:00:00",
+      "counterparty": "UPI CR/GPAY/CUST9287"
+    },
+    {
+      "amount": 2086.28,
+      "timestamp": "2025-08-31T00:00:00",
+      "counterparty": "UPI CR/CRED/CUST2403"
+    },
+    {
+      "amount": 5361.77,
+      "timestamp": "2025-09-01T00:00:00",
+      "counterparty": "UPI DR/KRISHNA IMPEX/RM PURCHASE"
+    },
+    {
+      "amount": 835.02,
+      "timestamp": "2025-09-01T00:00:00",
+      "counterparty": "UPI CR/MOBIKWIK/CUST1353"
+    },
+    {
+      "amount": 725.59,
+      "timestamp": "2025-09-01T00:00:00",
+      "counterparty": "UPI CR/MOBIKWIK/CUST7921"
+    },
+    {
+      "amount": 4683.8,
+      "timestamp": "2025-09-01T00:00:00",
+      "counterparty": "UPI CR/BHIM/CUST4739"
+    },
+    {
+      "amount": 3264.76,
+      "timestamp": "2025-09-01T00:00:00",
+      "counterparty": "UPI CR/GPAY/CUST2247"
+    },
+    {
+      "amount": 771.39,
+      "timestamp": "2025-09-02T00:00:00",
+      "counterparty": "UPI CR/MOBIKWIK/CUST6311"
+    },
+    {
+      "amount": 851.53,
+      "timestamp": "2025-09-03T00:00:00",
+      "counterparty": "UPI CR/INSTAMOJO/CUST1860"
+    },
+    {
+      "amount": 3884.23,
+      "timestamp": "2025-09-03T00:00:00",
+      "counterparty": "UPI CR/RAZORPAY/CUST6995"
+    },
+    {
+      "amount": 865.5,
+      "timestamp": "2025-09-04T00:00:00",
+      "counterparty": "UPI CR/RAZORPAY/CUST7149"
+    },
+    {
+      "amount": 2190.74,
+      "timestamp": "2025-09-05T00:00:00",
+      "counterparty": "UPI CR/AMAZONPAY/CUST5345"
+    },
+    {
+      "amount": 2557.09,
+      "timestamp": "2025-09-05T00:00:00",
+      "counterparty": "UPI CR/RAZORPAY/CUST5166"
+    },
+    {
+      "amount": 2571.84,
+      "timestamp": "2025-09-05T00:00:00",
+      "counterparty": "UPI CR/PAYTM/CUST6706"
+    },
+    {
+      "amount": 3111.03,
+      "timestamp": "2025-09-06T00:00:00",
+      "counterparty": "UPI CR/PAYTM/CUST9717"
+    },
+    {
+      "amount": 3821.53,
+      "timestamp": "2025-09-06T00:00:00",
+      "counterparty": "UPI CR/PAYTM/CUST5589"
+    },
+    {
+      "amount": 6806.42,
+      "timestamp": "2025-09-08T00:00:00",
+      "counterparty": "UPI DR/OM SAI TRADERS/BILL1949"
+    },
+    {
+      "amount": 4096.14,
+      "timestamp": "2025-09-10T00:00:00",
+      "counterparty": "UPI CR/INSTAMOJO/CUST7764"
+    },
+    {
+      "amount": 3292.21,
+      "timestamp": "2025-09-11T00:00:00",
+      "counterparty": "UPI CR/BHIM/CUST1321"
+    },
+    {
+      "amount": 3209.41,
+      "timestamp": "2025-09-12T00:00:00",
+      "counterparty": "UPI CR/BHIM/CUST5304"
+    },
+    {
+      "amount": 4648.83,
+      "timestamp": "2025-09-12T00:00:00",
+      "counterparty": "UPI CR/MOBIKWIK/CUST1737"
+    },
+    {
+      "amount": 2169.82,
+      "timestamp": "2025-09-12T00:00:00",
+      "counterparty": "UPI CR/BHIM/CUST1283"
+    },
+    {
+      "amount": 3659.68,
+      "timestamp": "2025-09-12T00:00:00",
+      "counterparty": "OFFICE SUP/STAPLES"
+    },
+    {
+      "amount": 3155.74,
+      "timestamp": "2025-09-14T00:00:00",
+      "counterparty": "UPI DR/MAHALAXMI AGENCY/RM PURCHASE"
+    },
+    {
+      "amount": 2966.49,
+      "timestamp": "2025-09-14T00:00:00",
+      "counterparty": "INTERNET/AIRTEL XSTREAM"
+    },
+    {
+      "amount": 2813.77,
+      "timestamp": "2025-09-14T00:00:00",
+      "counterparty": "UPI CR/MOBIKWIK/CUST1096"
+    }
+  ],
+  "account_aggregator_data": {
+    "month_end_balances": [
+      -198577.26,
+      -209720.92,
+      -248984.28,
+      -179815.32,
+      -141549.03,
+      -215059.77,
+      -284374.13,
+      -285442.46,
+      -272527.74,
+      -284870.64,
+      -341490.49,
+      -246064.87
+    ],
+    "monthly_inflows": [
+      327183.55,
+      531543.76,
+      529579.98,
+      752733.62,
+      728671.3099999999,
+      470478.67,
+      447044.29,
+      527293.63,
+      524662.22,
+      508521.22000000003,
+      549903.64,
+      616428.99
+    ],
+    "monthly_outflows": [
+      894432.25,
+      542687.4199999999,
+      568843.34,
+      683564.66,
+      690405.02,
+      543989.41,
+      516358.65,
+      528361.96,
+      511747.5,
+      520864.12,
+      606523.49,
+      521003.37
+    ],
+    "statement_start_date": "2025-07-01",
+    "statement_end_date": "2026-06-30"
+  },
+  "epfo_data": {
+    "monthly_employee_counts": [
+      4,
+      4,
+      4,
+      4,
+      4,
+      4,
+      4,
+      4,
+      4,
+      4,
+      4,
+      4
+    ]
+  },
+  "bank_data": {
+    "total_monthly_emi": 206868.65,
+    "loan_amounts": [
+      4964847.6
+    ],
+    "account_number": "ACCSME003"
+  }
+}
