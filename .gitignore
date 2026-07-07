@@ -44,5 +44,9 @@ risk agent/.hypothesis/
 risk agent/.pytest_cache/
 risk agent/agents/risk_intelligence_agent/__pycache__/
 backend/msme_workspace.db
+.env
+.env.local
+*.env
+
 
 
