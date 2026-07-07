@@ -33,8 +33,14 @@ const Sidebar = () => (
       <NavItem to="/customer/reports" icon={<PieChart className="w-4 h-4" />} label="Reports" />
     </div>
 
-    <div className="p-4 border-t border-border">
+    <div className="p-4 border-t border-border flex flex-col gap-2">
       <NavItem to="/customer/settings" icon={<Settings className="w-4 h-4" />} label="Settings" />
+      <Link to="/officer/dashboard" className="flex items-center gap-3 px-3 py-2 text-xs font-semibold text-primary bg-primary/5 hover:bg-primary/10 rounded transition-colors">
+        Switch to Officer View
+      </Link>
+      <Link to="/" className="flex items-center gap-3 px-3 py-2 text-xs font-medium text-error hover:bg-error/5 rounded transition-colors">
+        Sign Out
+      </Link>
     </div>
   </aside>
 );

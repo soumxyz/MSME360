@@ -104,11 +104,11 @@ const AnalysisWorkflow = () => {
   const navigate = useNavigate();
 
   const steps = [
-    { title: "Aggregating Data Sources", desc: "Securely fetching data from connected integrations." },
-    { title: "Normalizing Financial Records", desc: "Structuring unstructured data formats." },
-    { title: "AI Pattern Recognition", desc: "Analyzing cash flow, working capital, and repayment capacity." },
-    { title: "Generating Health Score", desc: "Calculating institutional-grade credit score." },
-    { title: "Formulating Recommendations", desc: "Mapping profile to IDBI Bank credit facilities." }
+    { title: "Initializing AI Credit Workspace", desc: "Setting up CreditPilot AI multi-agent workspace." },
+    { title: "Agent 1: Financial Intelligence Agent", desc: "Analyzing GST, AA, EPFO, and bank statement cash flow metrics." },
+    { title: "Agent 2: Risk & Compliance Agent", desc: "Running RBI policy checks and anomaly/fraud pattern validations." },
+    { title: "Agent 3: AI Credit Copilot", desc: "Synthesizing agent inputs to generate explainable recommendations." },
+    { title: "Compiling Credit Assessment Report", desc: "Finalizing dashboard underwriting profiles." }
   ];
 
   useEffect(() => {

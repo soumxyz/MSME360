@@ -35,6 +35,40 @@ const SignalBadge = ({ severity }: { severity: string }) => {
 export default function UnderwritingDetails() {
   const { id } = useParams();
   const [notes, setNotes] = useState('');
+  const [messages, setMessages] = useState([
+    {
+      sender: 'copilot',
+      text: "Hi, I am your CreditPilot AI Copilot. I have synthesized the assessments from Agent 1 (Financial Intelligence) and Agent 2 (Risk & Compliance). How can I assist you with this application today?"
+    }
+  ]);
+  const [inputText, setInputText] = useState('');
+
+  const handleSendMessage = (text: string) => {
+    if (!text.trim()) return;
+    
+    // User message
+    const userMsg = { sender: 'user', text };
+    setMessages(prev => [...prev, userMsg]);
+    setInputText('');
+
+    // Simulate response based on question keywords
+    setTimeout(() => {
+      let reply = "I'm analyzing the multi-agent outputs. Could you rephrase your question?";
+      const lower = text.toLowerCase();
+      
+      if (lower.includes('recommend') || lower.includes('why') || lower.includes('2.5') || lower.includes('250') || lower.includes('amount')) {
+        reply = "GST turnover has grown by 18% YoY, average monthly cash inflow is ₹45 Lakhs, no active fraud indicators were detected, and the DSCR ratio comfortably supports this credit size. Based on these factors, ₹2.5 Cr is a viable recommended limit.";
+      } else if (lower.includes('agent 1') || lower.includes('financial') || lower.includes('revenue') || lower.includes('turnover') || lower.includes('growth')) {
+        reply = "Agent 1 (Financial Intelligence Agent) evaluated GSTR-1 filings and AA statements, reporting a Financial Health Score of 82/100. Liquidity is strong (Average balance: ₹45 Lakhs) and Digital Adoption is high (92% digital velocity).";
+      } else if (lower.includes('agent 2') || lower.includes('risk') || lower.includes('fraud') || lower.includes('policy') || lower.includes('violation')) {
+        reply = "Agent 2 (Risk & Compliance Agent) validated eligibility and reports 0 critical policy violations. High-risk fraud checks (circular transaction cycles, tax defaults) all returned negative (no issues).";
+      } else if (lower.includes('tenure') || lower.includes('interest') || lower.includes('rate')) {
+        reply = "I suggest a Working Capital term of 12 months with a renewal option, and an interest rate range of 9.25% - 10.50% based on the business's low risk profile.";
+      }
+
+      setMessages(prev => [...prev, { sender: 'copilot', text: reply }]);
+    }, 1000);
+  };
 
   return (
     <div className="p-6 lg:p-8 w-full max-w-[1440px] mx-auto">
@@ -150,70 +184,102 @@ export default function UnderwritingDetails() {
         {/* Right Sidebar - AI & Actions */}
         <div className="xl:col-span-1 space-y-6">
           
-          {/* AI Financial Health Card */}
+          {/* AI Underwriting Profile */}
           <div className="bg-white border border-border rounded-card p-6 shadow-card">
-            <div className="flex items-center gap-2 mb-6 pb-4 border-b border-border">
+            <div className="flex items-center gap-2 mb-4 pb-4 border-b border-border">
               <ShieldCheck className="w-5 h-5 text-primary" />
-              <h3 className="text-base font-bold text-text-primary">AI Underwriting Profile</h3>
+              <h3 className="text-base font-bold text-text-primary">CreditPilot AI Workspace</h3>
             </div>
             
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="text-center p-4 bg-background-muted rounded">
-                <p className="text-[10px] uppercase tracking-wider text-text-secondary font-semibold mb-1">Health Score</p>
-                <p className="text-3xl font-bold text-success">82</p>
+                <p className="text-[10px] uppercase tracking-wider text-text-secondary font-semibold mb-1">Financial Health</p>
+                <p className="text-3xl font-bold text-success">88</p>
               </div>
               <div className="text-center p-4 bg-background-muted rounded">
-                <p className="text-[10px] uppercase tracking-wider text-text-secondary font-semibold mb-1">Business Grade</p>
-                <p className="text-3xl font-bold text-text-primary">A-</p>
+                <p className="text-[10px] uppercase tracking-wider text-text-secondary font-semibold mb-1">Risk Confidence</p>
+                <p className="text-3xl font-bold text-primary">92%</p>
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div className="p-4 border border-primary/20 bg-primary/5 rounded">
-                <p className="text-xs font-bold text-primary mb-1 flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4" /> AI Recommendation</p>
-                <p className="text-sm text-text-primary font-medium">Approve Working Capital Loan</p>
-                <p className="text-xs text-text-secondary mt-1">Recommended exposure limit: ₹3.2 Cr based on current GSTR-1 volumes.</p>
+            <div className="space-y-4 pt-4 border-t border-border">
+              <div>
+                <p className="text-xs font-bold text-text-primary mb-2 uppercase tracking-wide">Agent 1: Financial Intelligence</p>
+                <div className="grid grid-cols-2 gap-2 text-xs text-text-secondary bg-background-muted/30 p-3 rounded">
+                  <span>Growth: <strong>+18%</strong></span>
+                  <span>Liquidity: <strong>Good</strong></span>
+                  <span>Cash Flow: <strong>Stable</strong></span>
+                  <span>Capacity: <strong>Strong</strong></span>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs font-bold text-text-primary mb-2 uppercase tracking-wide">Agent 2: Risk & Compliance</p>
+                <div className="grid grid-cols-2 gap-2 text-xs text-text-secondary bg-background-muted/30 p-3 rounded">
+                  <span>Risk Level: <strong>Low</strong></span>
+                  <span>Fraud Status: <strong>None</strong></span>
+                  <span>Policy Checks: <strong>Eligible</strong></span>
+                  <span>Violations: <strong>0</strong></span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* AI Explainability & Fraud Signals */}
-          <div className="bg-white border border-border rounded-card p-6 shadow-card">
-            <h3 className="text-sm font-bold text-text-primary mb-4 uppercase tracking-wider border-b border-border pb-2">AI Explainability</h3>
+          {/* Agent 3: AI Credit Copilot Chat Console */}
+          <div className="bg-white border border-border rounded-card p-6 shadow-card flex flex-col h-[400px]">
+            <h3 className="text-sm font-bold text-text-primary mb-4 uppercase tracking-wider border-b border-border pb-2 flex items-center gap-2">
+              <BrainCircuit className="w-4 h-4 text-primary animate-pulse" /> Agent 3: AI Credit Copilot
+            </h3>
             
-            <div className="space-y-5">
-              <div>
-                <h4 className="text-sm font-semibold text-text-primary mb-1 flex items-start gap-2">
-                  <TrendingUp className="w-4 h-4 text-success mt-0.5" /> Why Working Capital Recommended
-                </h4>
-                <p className="text-xs text-text-secondary leading-relaxed pl-6">
-                  <strong>Finding:</strong> Debtor days increased from 53 to 65 days over 6 months.<br/>
-                  <strong>Evidence:</strong> Correlated between sales invoices and bank credit realizations.<br/>
-                  <strong>Business Impact:</strong> ₹40L temporary cash lockup. WC loan optimally bridges this gap.
-                </p>
-              </div>
-
-              <div>
-                <h4 className="text-sm font-semibold text-text-primary mb-2 mt-4 pt-4 border-t border-border">Fraud & Risk Signals</h4>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-text-secondary flex items-center gap-1.5"><ShieldAlert className="w-3.5 h-3.5"/> GST Mismatch</span>
-                    <SignalBadge severity="Low" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-text-secondary flex items-center gap-1.5"><ShieldAlert className="w-3.5 h-3.5"/> Cashflow Anomaly</span>
-                    <SignalBadge severity="Low" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-text-secondary flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-warning"/> Customer Concentration</span>
-                    <SignalBadge severity="Medium" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-text-secondary flex items-center gap-1.5"><ShieldAlert className="w-3.5 h-3.5"/> Tax Irregularity</span>
-                    <SignalBadge severity="Low" />
+            {/* Message History */}
+            <div className="flex-grow overflow-y-auto space-y-3 mb-4 pr-1 text-xs">
+              {messages.map((msg, index) => (
+                <div key={index} className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
+                  <div className={`p-3 rounded-lg max-w-[85%] leading-relaxed ${msg.sender === 'user' ? 'bg-primary text-white rounded-br-none' : 'bg-background-muted text-text-primary rounded-bl-none border border-border'}`}>
+                    {msg.text}
                   </div>
                 </div>
-              </div>
+              ))}
+            </div>
+
+            {/* Quick Ask Suggestion Buttons */}
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              <button 
+                onClick={() => handleSendMessage("Why did you recommend ₹2.5 Cr?")}
+                className="px-2.5 py-1 bg-primary/5 hover:bg-primary/10 border border-primary/20 text-[10px] font-medium text-primary rounded-full transition-colors text-left"
+              >
+                Why ₹2.5 Cr?
+              </button>
+              <button 
+                onClick={() => handleSendMessage("What did Agent 1 find?")}
+                className="px-2.5 py-1 bg-primary/5 hover:bg-primary/10 border border-primary/20 text-[10px] font-medium text-primary rounded-full transition-colors text-left"
+              >
+                Agent 1 Findings
+              </button>
+              <button 
+                onClick={() => handleSendMessage("Are there any risk alerts?")}
+                className="px-2.5 py-1 bg-primary/5 hover:bg-primary/10 border border-primary/20 text-[10px] font-medium text-primary rounded-full transition-colors text-left"
+              >
+                Agent 2 Alerts
+              </button>
+            </div>
+
+            {/* Input Bar */}
+            <div className="flex gap-2 pt-2 border-t border-border">
+              <input 
+                type="text"
+                placeholder="Ask Credit Copilot..."
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(inputText)}
+                className="flex-grow border border-border rounded px-3 py-2 text-xs focus:outline-none focus:border-primary"
+              />
+              <button 
+                onClick={() => handleSendMessage(inputText)}
+                className="bg-primary hover:bg-primary-hover text-white p-2 rounded transition-colors flex items-center justify-center"
+              >
+                <Send className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
 
