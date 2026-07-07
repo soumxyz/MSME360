@@ -1,0 +1,36 @@
+{
+  "msme_id": "MSME_2024_002",
+  "pan": "ABCDE1234F",
+  "gst_data": {
+    "gstin": "",
+    "registration_date": "2022-01-15",
+    "monthly_returns": [],
+    "filing_history": {
+      "total_filings_due": 0,
+      "filings_completed": 0,
+      "filings_missed": 0
+    }
+  },
+  "upi_data": {
+    "transactions": [],
+    "summary": {
+      "total_transactions": 0,
+      "total_volume": 0,
+      "period_start": "2024-01-01",
+      "period_end": "2024-01-31"
+    }
+  },
+  "account_aggregator_data": {
+    "monthly_statements": []
+  },
+  "epfo_data": {
+    "monthly_records": []
+  },
+  "bank_data": {
+    "monthly_emi": 0,
+    "outstanding_loan": 0,
+    "loan_to_turnover_ratio": 0,
+    "statement_start_date": "2024-01-01",
+    "statement_end_date": "2024-01-31"
+  }
+}

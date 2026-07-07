@@ -1,0 +1,36 @@
+# Core dependencies for Risk Intelligence Agent
+# Python 3.11+ required
+
+# LangGraph and orchestration
+langgraph>=0.0.50
+langchain>=0.1.0
+langchain-core>=0.1.0
+
+# API framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.6
+
+# Data validation and modeling
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Machine Learning
+xgboost>=2.0.3
+shap>=0.44.0
+scikit-learn>=1.4.0
+
+# LLM integration
+google-generativeai>=0.3.2
+
+# Data processing
+pandas>=2.2.0
+numpy>=1.26.0
+
+# Caching and database
+redis>=5.0.1
+psycopg2-binary>=2.9.9
+
+# Utilities
+python-dotenv>=1.0.0
+pyyaml>=6.0.1
