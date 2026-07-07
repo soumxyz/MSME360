@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -210,6 +211,7 @@ const AnalysisWorkflow = () => {
 };
 
 export default function BusinessRegistration() {
+  const queryClient = useQueryClient();
   const [statuses, setStatuses] = useState<Record<string, ConnectionStatus>>(
     DATA_SOURCES.reduce((acc, source) => ({ ...acc, [source.id]: 'disconnected' }), {})
   );
@@ -252,6 +254,10 @@ export default function BusinessRegistration() {
       
       if ((response as any).business_id) {
         localStorage.setItem('active_business_id', (response as any).business_id);
+        // Invalidate all cached queries so customer pages load the new business
+        // and officer pages see the new application immediately
+        queryClient.invalidateQueries({ queryKey: ['business'] });
+        queryClient.invalidateQueries({ queryKey: ['portfolio'] });
       }
       
       addAuditEvent({
