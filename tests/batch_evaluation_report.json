@@ -1,0 +1,1103 @@
+{
+  "timestamp": "2026-07-07T20:46:13.198587",
+  "total_evaluated": 120,
+  "successful_evaluations": 120,
+  "failed_evaluations": 0,
+  "overall_success_rate": "100.00%",
+  "total_elapsed_seconds": 11.43,
+  "average_score": 50.28,
+  "average_latency_seconds": 0.835,
+  "recommendation_distribution": {
+    "APPROVE": 0,
+    "REJECT": 117,
+    "CONDITIONAL_APPROVAL": 3
+  },
+  "risk_category_distribution": {
+    "LOW": 0,
+    "MEDIUM": 0,
+    "HIGH": 120
+  },
+  "failures": [],
+  "detailed_results": [
+    {
+      "msme_id": "MSME_TEST_001",
+      "success": true,
+      "score": 52.63840968673145,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 8.069508075714111,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_002",
+      "success": true,
+      "score": 50.01321124658918,
+      "risk_category": "HIGH",
+      "recommendation": "MANUAL_REVIEW",
+      "latency_sec": 8.036066055297852,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_003",
+      "success": true,
+      "score": 48.0146103857013,
+      "risk_category": "HIGH",
+      "recommendation": "MANUAL_REVIEW",
+      "latency_sec": 8.007502555847168,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_004",
+      "success": true,
+      "score": 51.10421509722077,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 7.985843181610107,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_005",
+      "success": true,
+      "score": 51.38870882647673,
+      "risk_category": "HIGH",
+      "recommendation": "MANUAL_REVIEW",
+      "latency_sec": 7.960318326950073,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_006",
+      "success": true,
+      "score": 48.72906534981878,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 7.935133218765259,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_007",
+      "success": true,
+      "score": 50.055195372147594,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 7.901914834976196,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_008",
+      "success": true,
+      "score": 50.56992120029062,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 7.877041578292847,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_009",
+      "success": true,
+      "score": 52.09628966644216,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 7.853857755661011,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_010",
+      "success": true,
+      "score": 51.12887519967404,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 7.827704906463623,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_011",
+      "success": true,
+      "score": 51.23030939146506,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.26846742630004883,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_012",
+      "success": true,
+      "score": 54.84294978385,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.2443983554840088,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_013",
+      "success": true,
+      "score": 52.63441351108368,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.2216014862060547,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_014",
+      "success": true,
+      "score": 52.36095185829165,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.19424200057983398,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_015",
+      "success": true,
+      "score": 48.94155656575012,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.17288422584533691,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_016",
+      "success": true,
+      "score": 52.38348530508877,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.15137171745300293,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_017",
+      "success": true,
+      "score": 51.85688949657632,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.12907052040100098,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_018",
+      "success": true,
+      "score": 48.832740614924475,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.10810637474060059,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_019",
+      "success": true,
+      "score": 50.1942565531626,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.0827174186706543,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_020",
+      "success": true,
+      "score": 50.26218272631196,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.059272050857543945,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_021",
+      "success": true,
+      "score": 50.25244415107095,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.2651653289794922,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_022",
+      "success": true,
+      "score": 50.12930235496948,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.2437121868133545,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_023",
+      "success": true,
+      "score": 52.16024961153404,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.22205710411071777,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_024",
+      "success": true,
+      "score": 50.31332733126147,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.19686198234558105,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_025",
+      "success": true,
+      "score": 51.09231905933398,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.17400097846984863,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_026",
+      "success": true,
+      "score": 50.86876297285698,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.1504518985748291,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_027",
+      "success": true,
+      "score": 48.82645071621463,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.12634825706481934,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_028",
+      "success": true,
+      "score": 49.83998099175349,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.10373425483703613,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_029",
+      "success": true,
+      "score": 50.89340303391628,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.07610034942626953,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_030",
+      "success": true,
+      "score": 50.79459286528922,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.05392622947692871,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_031",
+      "success": true,
+      "score": 51.641770132136415,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.28649067878723145,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_032",
+      "success": true,
+      "score": 50.18345238319385,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.2625997066497803,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_033",
+      "success": true,
+      "score": 45.402508138356914,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.2316739559173584,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_034",
+      "success": true,
+      "score": 49.180067381237315,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.20768094062805176,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_035",
+      "success": true,
+      "score": 50.02787175657077,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.18790984153747559,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_036",
+      "success": true,
+      "score": 49.741842293811104,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.16541004180908203,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_037",
+      "success": true,
+      "score": 47.22453774701187,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.1417980194091797,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_038",
+      "success": true,
+      "score": 50.37513970984557,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.11908173561096191,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_039",
+      "success": true,
+      "score": 53.28958007710995,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.0956268310546875,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_040",
+      "success": true,
+      "score": 49.93172374422298,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.06531739234924316,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_041",
+      "success": true,
+      "score": 50.6895302496197,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.27655458450317383,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_042",
+      "success": true,
+      "score": 49.03810215281776,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.24853277206420898,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_043",
+      "success": true,
+      "score": 47.44425162639689,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.21881437301635742,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_044",
+      "success": true,
+      "score": 50.68776394019727,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.1953754425048828,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_045",
+      "success": true,
+      "score": 51.313937125720756,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.17273688316345215,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_046",
+      "success": true,
+      "score": 52.22595526619642,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.1499030590057373,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_047",
+      "success": true,
+      "score": 51.73467517723366,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.12804603576660156,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_048",
+      "success": true,
+      "score": 50.193315215748385,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.10529851913452148,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_049",
+      "success": true,
+      "score": 50.13173983246907,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.08293366432189941,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_050",
+      "success": true,
+      "score": 51.68720621290733,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.06174635887145996,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_051",
+      "success": true,
+      "score": 50.08726678333507,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.28811216354370117,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_052",
+      "success": true,
+      "score": 45.79170897670278,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.26502180099487305,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_053",
+      "success": true,
+      "score": 51.10061376654137,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.2432539463043213,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_054",
+      "success": true,
+      "score": 51.336797198100825,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.21770143508911133,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_055",
+      "success": true,
+      "score": 49.83179735172298,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.19514083862304688,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_056",
+      "success": true,
+      "score": 50.43703913349273,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.17193841934204102,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_057",
+      "success": true,
+      "score": 51.20366644111728,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.14969682693481445,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_058",
+      "success": true,
+      "score": 48.204895327241715,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.12680292129516602,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_059",
+      "success": true,
+      "score": 49.62846639363225,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.09865546226501465,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_060",
+      "success": true,
+      "score": 51.20530761735152,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.0699918270111084,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_061",
+      "success": true,
+      "score": 50.90757320859427,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.4143483638763428,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_062",
+      "success": true,
+      "score": 47.56460431109658,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.38701844215393066,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_063",
+      "success": true,
+      "score": 49.78602458112617,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.3533141613006592,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_064",
+      "success": true,
+      "score": 49.31547589130649,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.32018446922302246,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_065",
+      "success": true,
+      "score": 51.37734218098051,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.2907094955444336,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_066",
+      "success": true,
+      "score": 51.70970059189543,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.26858043670654297,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_067",
+      "success": true,
+      "score": 48.603126205653766,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.24369454383850098,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_068",
+      "success": true,
+      "score": 50.54375924354363,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.2153148651123047,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_069",
+      "success": true,
+      "score": 47.10911250771908,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.09408736228942871,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_070",
+      "success": true,
+      "score": 50.398320526632524,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.07163739204406738,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_071",
+      "success": true,
+      "score": 50.94782696887913,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.2817962169647217,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_072",
+      "success": true,
+      "score": 51.636172257516066,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.2595500946044922,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_073",
+      "success": true,
+      "score": 49.02632453916512,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.23847222328186035,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_074",
+      "success": true,
+      "score": 50.730453663382434,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.2099132537841797,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_075",
+      "success": true,
+      "score": 52.44174781756169,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.1864635944366455,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_076",
+      "success": true,
+      "score": 51.80300838550464,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.1601567268371582,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_077",
+      "success": true,
+      "score": 51.371961959691816,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.1348879337310791,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_078",
+      "success": true,
+      "score": 51.121034121249934,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.1010890007019043,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_079",
+      "success": true,
+      "score": 49.166010941540634,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.07970619201660156,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_080",
+      "success": true,
+      "score": 51.50518150377229,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.05336117744445801,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_081",
+      "success": true,
+      "score": 51.402455870677215,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.32216382026672363,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_082",
+      "success": true,
+      "score": 50.33751442615392,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.3020188808441162,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_083",
+      "success": true,
+      "score": 51.19414624077635,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.2815573215484619,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_084",
+      "success": true,
+      "score": 50.166825029160236,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.25861549377441406,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_085",
+      "success": true,
+      "score": 50.663463731171575,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.2352597713470459,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_086",
+      "success": true,
+      "score": 52.01058982192015,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.19748353958129883,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_087",
+      "success": true,
+      "score": 50.08519769581528,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.15903592109680176,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_088",
+      "success": true,
+      "score": 48.11537291696273,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.11695694923400879,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_089",
+      "success": true,
+      "score": 48.40729639044747,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.08905410766601562,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_090",
+      "success": true,
+      "score": 51.01700132342937,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.06529712677001953,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_091",
+      "success": true,
+      "score": 50.28167906662636,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.31354618072509766,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_092",
+      "success": true,
+      "score": 49.06911024818129,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.28293657302856445,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_093",
+      "success": true,
+      "score": 51.56731177510311,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.25841379165649414,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_094",
+      "success": true,
+      "score": 50.56891489658481,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.2284846305847168,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_095",
+      "success": true,
+      "score": 42.37118478226347,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.20537304878234863,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_096",
+      "success": true,
+      "score": 52.61053500847112,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.18073463439941406,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_097",
+      "success": true,
+      "score": 51.79760168477384,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.13495635986328125,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_098",
+      "success": true,
+      "score": 50.41351505562904,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.09863948822021484,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_099",
+      "success": true,
+      "score": 51.15409477611561,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.07740449905395508,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_100",
+      "success": true,
+      "score": 50.61085033308385,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.056966304779052734,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_101",
+      "success": true,
+      "score": 47.074091194258145,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.3101236820220947,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_102",
+      "success": true,
+      "score": 49.681116770733354,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.2885115146636963,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_103",
+      "success": true,
+      "score": 47.461006160087486,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.26195406913757324,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_104",
+      "success": true,
+      "score": 50.488719905874405,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.23918390274047852,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_105",
+      "success": true,
+      "score": 51.63001140922719,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.21716761589050293,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_106",
+      "success": true,
+      "score": 49.305048309146855,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.19417977333068848,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_107",
+      "success": true,
+      "score": 50.125044698952465,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.16089153289794922,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_108",
+      "success": true,
+      "score": 51.61979182608061,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.13642168045043945,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_109",
+      "success": true,
+      "score": 50.48139122112234,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.11420655250549316,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_110",
+      "success": true,
+      "score": 44.27795733650692,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.09306788444519043,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_111",
+      "success": true,
+      "score": 51.55553694738284,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.3212144374847412,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_112",
+      "success": true,
+      "score": 50.96062757115476,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.2882847785949707,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_113",
+      "success": true,
+      "score": 51.48151684405417,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.2634572982788086,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_114",
+      "success": true,
+      "score": 47.809460653792556,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.23872947692871094,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_115",
+      "success": true,
+      "score": 49.6088017895045,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.21560335159301758,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_116",
+      "success": true,
+      "score": 50.83963238806411,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.19209766387939453,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_117",
+      "success": true,
+      "score": 51.100677939725465,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.15822672843933105,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_118",
+      "success": true,
+      "score": 51.97562942661362,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.1320340633392334,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_119",
+      "success": true,
+      "score": 49.207504769648224,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.10762858390808105,
+      "error": null
+    },
+    {
+      "msme_id": "MSME_TEST_120",
+      "success": true,
+      "score": 50.565971666090434,
+      "risk_category": "HIGH",
+      "recommendation": "REJECT",
+      "latency_sec": 0.07140374183654785,
+      "error": null
+    }
+  ]
+}

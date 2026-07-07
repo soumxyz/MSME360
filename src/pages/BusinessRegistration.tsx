@@ -250,10 +250,14 @@ export default function BusinessRegistration() {
       setVerdict(response.verdict);
       setChecks(response.checks);
       
+      if ((response as any).business_id) {
+        localStorage.setItem('active_business_id', (response as any).business_id);
+      }
+      
       addAuditEvent({
         type: 'intake',
-        business_id: 'CUST-NEW',
-        business_name: 'Custom MSME Registration',
+        business_id: (response as any).business_id || 'CUST-NEW',
+        business_name: file.name.replace(".csv", "").replace("_", " ").title ? file.name.replace(".csv", "").replace("_", " ") : 'Custom MSME Registration',
         summary: `Compliance verification result: ${response.verdict} (${response.checks.filter(c => c.status === 'pass').length}/${response.checks.length} passed)`
       });
     } catch (e) {

@@ -126,9 +126,140 @@ async def upload_intake(bank_file: UploadFile = File(...), gst_file: UploadFile 
     # Process compliance rules
     verdict, checks = check_compliance_rules(bank_bytes, gst_bytes)
     
+    business_id = None
+    if verdict != "RED":
+        try:
+            import io
+            import random
+            df = pd.read_csv(io.BytesIO(bank_bytes))
+            df.columns = [c.strip() for c in df.columns]
+            
+            # Extract basic metrics
+            df["Credit"] = pd.to_numeric(df["Credit"], errors="coerce").fillna(0)
+            df["Debit"] = pd.to_numeric(df["Debit"], errors="coerce").fillna(0)
+            df["Running_Balance"] = pd.to_numeric(df["Running_Balance"], errors="coerce").fillna(0)
+            
+            total_credits = float(df["Credit"].sum())
+            total_debits = float(df["Debit"].sum())
+            avg_bal = float(df["Running_Balance"].mean())
+            min_bal = float(df["Running_Balance"].min())
+            
+            # Calculate expense ratio
+            expense_ratio = total_debits / max(1.0, total_credits)
+            
+            # Volatility
+            credit_std = float(df["Credit"].std()) if len(df) > 1 else 0
+            credit_mean = float(df["Credit"].mean()) if len(df) > 0 else 1
+            volatility = credit_std / max(1.0, credit_mean)
+            
+            # Generate score based on actual metrics
+            score_base = 75
+            if expense_ratio < 0.85:
+                score_base += 10
+            elif expense_ratio > 0.95:
+                score_base -= 15
+                
+            if min_bal > 40000:
+                score_base += 5
+            elif min_bal < 10000:
+                score_base -= 10
+                
+            if volatility > 0.4:
+                score_base -= 5
+                
+            score = max(30, min(95, int(score_base)))
+            band = "Low" if score >= 80 else ("Medium" if score >= 60 else "High")
+            
+            # Unique ID
+            rand_id = "".join(random.choices("0123456789", k=4))
+            business_id = f"MSME_UP_{rand_id}"
+            
+            # Create a clean name
+            name_base = bank_file.filename.replace(".csv", "").replace("_", " ").title()
+            biz_name = f"{name_base}"
+            
+            # Determine industry based on file name or generic
+            industry = "Retail Merchant"
+            if "kirana" in bank_file.filename.lower():
+                industry = "Kirana Store"
+            elif "distributor" in bank_file.filename.lower():
+                industry = "FMCG Distribution"
+            elif "high_score" in bank_file.filename.lower():
+                industry = "Agri-Processing"
+            
+            # Build monthly trends (mock trends scaled by actual averages)
+            trends = []
+            months = ["Jul", "Aug", "Sept", "Oct", "Nov", "Dec"]
+            for idx, m in enumerate(months):
+                trends.append({
+                    "month": f"2025-{idx+7:02d}",
+                    "revenue": int((total_credits / 6) * random.uniform(0.9, 1.1)),
+                    "expense": int((total_debits / 6) * random.uniform(0.9, 1.1))
+                })
+                
+            # Compute category performance scores
+            cash_buffer_days = (avg_bal / max(1.0, total_debits / 180.0)) if total_debits > 0 else 15.0
+            
+            report_dict = {
+                "eligibility_score": score,
+                "risk_category": band,
+                "verdict": "APPROVE" if score >= 75 else ("CONDITIONAL_APPROVAL" if score >= 55 else "REJECT"),
+                "trends": trends,
+                "metrics": {
+                    "cash_buffer_days": round(cash_buffer_days, 1),
+                    "income_volatility": round(volatility, 2),
+                    "expense_ratio": round(expense_ratio, 2),
+                    "bounce_count": 0.0,
+                    "emi_ratio": 0.0,
+                    "gst_regularity": 1.0,
+                    "digital_payment_ratio": 0.9,
+                    "revenue_growth": 0.05,
+                    "monthly_savings_rate": 0.15,
+                    "average_balance": round(avg_bal, 2),
+                    "minimum_balance": round(min_bal, 2)
+                },
+                "gst_analysis": {
+                    "annual_turnover": int(total_credits * 2),
+                    "filing_regularity": 1.0
+                },
+                "ml_scoring": {
+                    "feature_contributions": {
+                        "Expense_to_income_ratio": -15.0 if expense_ratio > 0.9 else 15.0,
+                        "GST_regularity": 10.0,
+                        "Cash_buffer_days": 10.0,
+                        "Minimum_balance": -10.0 if min_bal < 10000 else 5.0
+                    }
+                }
+            }
+            
+            # Save to SQLite custom_businesses database
+            add_custom_business(
+                business_id=business_id,
+                name=biz_name,
+                industry=industry,
+                score=score,
+                band=band,
+                data_json=json.dumps(report_dict)
+            )
+            
+            # Log audit event
+            add_audit_event(
+                event_type="intake", 
+                business_id=business_id, 
+                business_name=biz_name,
+                summary=f"Alternate statement uploaded & auto-analyzed. Compliance: {verdict}. Score: {score}/100.",
+                actor="System (Intake Engine)"
+            )
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            business_id = None
+
     return {
         "verdict": verdict,
-        "checks": checks
+        "checks": checks,
+        "business_id": business_id
     }
 
 @app.post("/api/v1/evaluate")
@@ -136,16 +267,12 @@ async def evaluate_credit_risk(msme_input: MSMEInput):
     try:
         report = await evaluate_msme(msme_input)
         
-        # Convert report Pydantic model to dictionary
-        if hasattr(report, "model_dump"):
-            report_dict = report.model_dump()
-        elif hasattr(report, "dict"):
-            report_dict = report.dict()
-        else:
-            report_dict = report
+        # Convert report to JSON-serializable dictionary
+        from fastapi.encoders import jsonable_encoder
+        report_dict = jsonable_encoder(report)
 
         # Extract business parameters for persistence
-        business_id = msme_input.msme_id
+        business_id = msme_input.gstin
         score = int(report_dict.get("eligibility_score", 70))
         band = report_dict.get("risk_category", "Medium")
         
@@ -241,16 +368,34 @@ def business_detail(business_id: str):
                 {"name": "Bounce_Count", "label": "Bounce Count", "direction": "-", "weight": 0.3, "detail": "Zero cheque bounces."}
             ]
             
-        # Map month trends (mock trends based on actual averages)
-        trends = []
-        months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-        for idx, m in enumerate(months):
-            trends.append({
-                "month": f"2025-{idx+1:02d}",
-                "revenue": 500000 + (idx % 3) * 50000,
-                "expense": 400000 + (idx % 2) * 20000
-            })
-            
+        # Map month trends (mock trends based on actual averages, or real if saved)
+        trends = report_dict.get("trends", [])
+        if not trends:
+            months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+            for idx, m in enumerate(months):
+                trends.append({
+                    "month": f"2025-{idx+1:02d}",
+                    "revenue": 500000 + (idx % 3) * 50000,
+                    "expense": 400000 + (idx % 2) * 20000
+                })
+                
+        metrics = report_dict.get("metrics", {
+            "cash_buffer_days": 15.0,
+            "income_volatility": 0.12,
+            "expense_ratio": 0.8,
+            "bounce_count": 0.0,
+            "emi_ratio": 0.0,
+            "gst_regularity": 1.0,
+            "digital_payment_ratio": 0.9,
+            "revenue_growth": 0.05,
+            "monthly_savings_rate": 0.2,
+            "average_balance": 150000.0,
+            "minimum_balance": 50000.0
+        })
+        
+        annual_turnover = report_dict.get("gst_analysis", {}).get("annual_turnover", 6000000)
+        loan_amount = 2650000 if score >= 80 else (1500000 if score >= 60 else 500000)
+        
         return {
             "business_id": business_id,
             "profile": {
@@ -265,7 +410,7 @@ def business_detail(business_id: str):
                 "gst_registered": True,
                 "existing_loan": False,
                 "existing_emi": 0,
-                "annual_turnover": 6000000
+                "annual_turnover": annual_turnover
             },
             "score": {
                 "score": score,
@@ -274,26 +419,14 @@ def business_detail(business_id: str):
             },
             "factors": factors[:5],
             "recommendation": {
-                "loan_amount": 1500000,
+                "loan_amount": loan_amount,
                 "tenure_months": 24,
                 "interest_band": "10.5% - 12.5%",
                 "decision": "Approve" if score >= 75 else ("Conditional Approval" if score >= 55 else "Reject")
             },
             "trends": trends,
             "gst_timeline": [],
-            "metrics": {
-                "cash_buffer_days": 15.0,
-                "income_volatility": 0.12,
-                "expense_ratio": 0.8,
-                "bounce_count": 0.0,
-                "emi_ratio": 0.0,
-                "gst_regularity": 1.0,
-                "digital_payment_ratio": 0.9,
-                "revenue_growth": 0.05,
-                "monthly_savings_rate": 0.2,
-                "average_balance": 150000.0,
-                "minimum_balance": 50000.0
-            },
+            "metrics": metrics,
             "officer_status": officer_status,
             "applied_at": custom_biz["applied_at"][:10]
         }
