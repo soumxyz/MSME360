@@ -52,6 +52,66 @@ DATASET_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 FEAT_DF = pd.read_csv(os.path.join(DATASET_DIR, "engineered_features.csv"))
 LBL_DF = pd.read_csv(os.path.join(DATASET_DIR, "credit_labels.csv"))
 
+def get_dynamic_profile(business_id: str, name: str, annual_turnover: float, avg_revenue: float, score: int):
+    import hashlib
+    seed_hash = int(hashlib.md5(name.encode("utf-8")).hexdigest(), 16)
+    
+    loc_list = [
+        ("Mumbai", "Maharashtra"),
+        ("Kolkata", "West Bengal"),
+        ("Surat", "Gujarat"),
+        ("Chennai", "Tamil Nadu"),
+        ("Guwahati", "Assam"),
+        ("Bengaluru", "Karnataka"),
+        ("Hyderabad", "Telangana"),
+        ("Noida", "Uttar Pradesh")
+    ]
+    
+    if len(business_id) >= 15 and not business_id.startswith("MSME_UP_"):
+        prefix = business_id[:2]
+        gstin_map = {
+            "27": ("Mumbai", "Maharashtra"),
+            "19": ("Kolkata", "West Bengal"),
+            "24": ("Surat", "Gujarat"),
+            "33": ("Chennai", "Tamil Nadu"),
+            "29": ("Bengaluru", "Karnataka"),
+            "36": ("Hyderabad", "Telangana"),
+            "07": ("New Delhi", "Delhi"),
+            "09": ("Noida", "Uttar Pradesh")
+        }
+        city, state = gstin_map.get(prefix, loc_list[seed_hash % len(loc_list)])
+    else:
+        city, state = loc_list[seed_hash % len(loc_list)]
+        
+    first_names = ["Rajesh", "Amit", "Sanjay", "Vikram", "Sunita", "Aarav", "Meera", "Arjun", "Priya", "Rahul"]
+    surnames = ["Patel", "Sharma", "Banerjee", "Mehta", "Joshi", "Iyer", "Rao", "Gupta", "Das", "Reddy"]
+    owner = f"{first_names[seed_hash % len(first_names)]} {surnames[(seed_hash // len(first_names)) % len(surnames)]}"
+    
+    business_age_years = 3 + (seed_hash % 8)
+    employee_count = max(3, min(120, int(annual_turnover / 800000) + (seed_hash % 5)))
+    
+    if annual_turnover < 50000000:
+        category = "Micro"
+    elif annual_turnover < 750000000:
+        category = "Small"
+    else:
+        category = "Medium"
+        
+    multiplier = 1.2 if score >= 80 else (1.0 if score >= 65 else (0.7 if score >= 50 else 0.3))
+    raw_loan = avg_revenue * 3 * multiplier
+    loan_amount = int(round(raw_loan / 50000) * 50000)
+    loan_amount = max(100000, min(50000000, loan_amount))
+    
+    return {
+        "city": city,
+        "state": state,
+        "owner": owner,
+        "business_age_years": business_age_years,
+        "employee_count": employee_count,
+        "category": category,
+        "loan_amount": loan_amount
+    }
+
 @app.get("/api/portfolio")
 def portfolio():
     merged = FEAT_DF.merge(LBL_DF[["Business_ID", "Financial_Health_Score", "Risk_Category", "Confidence"]], on="Business_ID")
@@ -70,18 +130,33 @@ def portfolio():
     for c in custom_list:
         bid = c["business_id"]
         status = decisions.get(bid, "Pending")
+        
+        # Extract details dynamically from saved JSON data
+        avg_revenue = 500000.0
+        annual_turnover = 6000000.0
+        try:
+            data = json.loads(c["data_json"])
+            trends = data.get("trends", [])
+            if trends:
+                avg_revenue = sum(t["revenue"] for t in trends) / len(trends)
+            annual_turnover = data.get("gst_analysis", {}).get("annual_turnover", avg_revenue * 12)
+        except Exception:
+            pass
+            
+        profile = get_dynamic_profile(bid, c["name"], annual_turnover, avg_revenue, int(c["score"]))
+        
         rows.append({
             "business_id": bid,
             "name": c["name"],
             "industry": c["industry"],
-            "city": "Mumbai",
-            "state": "Maharashtra",
-            "category": "Micro",
+            "city": profile["city"],
+            "state": profile["state"],
+            "category": profile["category"],
             "gst_registered": True,
             "score": int(c["score"]),
             "band": c["band"],
             "confidence": 0.95,
-            "avg_monthly_revenue": 500000.0,
+            "avg_monthly_revenue": float(avg_revenue),
             "model_decision": "Approve" if c["score"] >= 75 else ("Conditional Approval" if c["score"] >= 55 else "Reject"),
             "officer_status": status,
             "applied_at": c["applied_at"][:10]
@@ -418,34 +493,29 @@ def business_detail(business_id: str):
                     "expense": 400000 + (idx % 2) * 20000
                 })
                 
-        metrics = report_dict.get("metrics", {
-            "cash_buffer_days": 15.0,
-            "income_volatility": 0.12,
-            "expense_ratio": 0.8,
-            "bounce_count": 0.0,
-            "emi_ratio": 0.0,
-            "gst_regularity": 1.0,
-            "digital_payment_ratio": 0.9,
-            "revenue_growth": 0.05,
-            "monthly_savings_rate": 0.2,
-            "average_balance": 150000.0,
-            "minimum_balance": 50000.0
-        })
+        # Determine average monthly revenue from trends
+        avg_revenue = 500000.0
+        if trends:
+            avg_revenue = sum(t["revenue"] for t in trends) / len(trends)
+            
+        annual_turnover = report_dict.get("gst_analysis", {}).get("annual_turnover", avg_revenue * 12)
         
-        annual_turnover = report_dict.get("gst_analysis", {}).get("annual_turnover", 6000000)
-        loan_amount = 2650000 if score >= 80 else (1500000 if score >= 60 else 500000)
+        metrics = report_dict.get("metrics", {})
+        
+        # Get dynamic profile details
+        profile = get_dynamic_profile(business_id, custom_biz["name"], annual_turnover, avg_revenue, score)
         
         return {
             "business_id": business_id,
             "profile": {
                 "name": custom_biz["name"],
-                "owner": "Ayesha Mehta",
+                "owner": profile["owner"],
                 "industry": custom_biz["industry"],
-                "city": "Mumbai",
-                "state": "Maharashtra",
-                "business_age_years": 5,
-                "employee_count": 8,
-                "category": "Micro",
+                "city": profile["city"],
+                "state": profile["state"],
+                "business_age_years": profile["business_age_years"],
+                "employee_count": profile["employee_count"],
+                "category": profile["category"],
                 "gst_registered": True,
                 "existing_loan": False,
                 "existing_emi": 0,
@@ -458,9 +528,9 @@ def business_detail(business_id: str):
             },
             "factors": factors[:5],
             "recommendation": {
-                "loan_amount": loan_amount,
-                "tenure_months": 24,
-                "interest_band": "10.5% - 12.5%",
+                "loan_amount": profile["loan_amount"],
+                "tenure_months": 24 if score >= 65 else 12,
+                "interest_band": "10.5% - 12.5%" if score >= 80 else ("12.5% - 14.5%" if score >= 65 else "14.5% - 16.5%"),
                 "decision": "Approve" if score >= 75 else ("Conditional Approval" if score >= 55 else "Reject")
             },
             "trends": trends,
@@ -570,14 +640,30 @@ def copilot_query(req: CopilotRequest):
     custom_biz = get_custom_business_detail(req.business_id)
     if custom_biz:
         report_dict = json.loads(custom_biz["data_json"])
-        scoring = {
-            "score": int(custom_biz["score"]),
-            "band": custom_biz["band"],
-            "factors": [
+        
+        # Build factors from report features or use clean defaults
+        factors = []
+        if "ml_scoring" in report_dict and "feature_contributions" in report_dict["ml_scoring"]:
+            contribs = report_dict["ml_scoring"]["feature_contributions"]
+            for col, val in contribs.items():
+                factors.append({
+                    "name": col,
+                    "label": col.replace("_", " "),
+                    "direction": "+" if val >= 0 else "-",
+                    "weight": abs(val),
+                    "detail": f"{col.replace('_', ' ')} is {val:.2f}."
+                })
+        else:
+            factors = [
                 {"name": "GST_Regularity_Score", "label": "GST Regularity", "direction": "+", "weight": 0.4, "detail": "Perfect 12/12 GST filings verified."},
                 {"name": "Cash_Buffer_Days", "label": "Cash Buffer", "direction": "+", "weight": 0.3, "detail": "Cash buffer covers 15 days."},
                 {"name": "Bounce_Count", "label": "Bounce Count", "direction": "-", "weight": 0.3, "detail": "Zero cheque bounces."}
             ]
+            
+        scoring = {
+            "score": int(custom_biz["score"]),
+            "band": custom_biz["band"],
+            "factors": factors
         }
     else:
         try:
