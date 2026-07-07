@@ -1,103 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as framerMotion, AnimatePresence as FramerAnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Activity, 
-  FileText, 
-  Smartphone, 
-  Landmark, 
-  Briefcase, 
-  Receipt, 
-  ScrollText, 
-  Lightbulb, 
-  FileStack,
-  CheckCircle2,
-  AlertCircle,
-  Loader2,
-  ArrowRight,
-  ShieldCheck
+  Activity, FileText, Smartphone, Landmark, Briefcase, 
+  CheckCircle2, AlertCircle, Loader2, ArrowRight, ShieldCheck, ArrowLeft
 } from 'lucide-react';
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected';
 
-interface DataSource {
+interface WizardStep {
   id: string;
   name: string;
-  icon: React.ReactNode;
   description: string;
+  icon: React.ReactNode;
+  infoLabel: string;
 }
 
-const DATA_SOURCES: DataSource[] = [
-  { id: 'gst', name: 'GST Returns', description: 'GSTR-1 & GSTR-3B data via GSTN', icon: <FileText className="w-6 h-6" /> },
-  { id: 'upi', name: 'UPI Transactions', description: 'Merchant QR collections & VPA', icon: <Smartphone className="w-6 h-6" /> },
-  { id: 'aa', name: 'Account Aggregator', description: 'Secure consent-based bank data', icon: <Landmark className="w-6 h-6" /> },
-  { id: 'epfo', name: 'EPFO', description: 'Employee provident fund records', icon: <Briefcase className="w-6 h-6" /> },
-  { id: 'bank', name: 'Bank Statements', description: 'Upload PDF statements securely', icon: <ScrollText className="w-6 h-6" /> },
-  { id: 'itr', name: 'Income Tax Returns', description: 'ITR-3 / ITR-4 acknowledgments', icon: <Receipt className="w-6 h-6" /> },
-  { id: 'utility', name: 'Utility Bills', description: 'Electricity & broadband payment history', icon: <Lightbulb className="w-6 h-6" /> },
-  { id: 'invoices', name: 'Sales Invoices', description: 'ERP or accounting software sync', icon: <FileStack className="w-6 h-6" /> },
+const WIZARD_STEPS: WizardStep[] = [
+  { 
+    id: 'gst', 
+    name: 'Connect GST Returns', 
+    description: 'We fetch authorized GSTR-1 and GSTR-3B filings to verify historical turnover, seasonality, and digital adoption velocity.',
+    icon: <FileText className="w-12 h-12 text-primary" />,
+    infoLabel: 'Direct GSTN Consent integration'
+  },
+  { 
+    id: 'aa', 
+    name: 'Connect Account Aggregator', 
+    description: 'Provide consent to securely aggregate bank statement data in real-time to analyze average monthly balances and credit velocity.',
+    icon: <Landmark className="w-12 h-12 text-primary" />,
+    infoLabel: 'FIP-certified secure aggregation'
+  },
+  { 
+    id: 'upi', 
+    name: 'Connect UPI Transactions', 
+    description: 'Verify retail merchant QR inflows and VPA velocity to evaluate short-term working capital cycles.',
+    icon: <Smartphone className="w-12 h-12 text-primary" />,
+    infoLabel: 'NPCI UPI network validation'
+  }
 ];
-
-const IntegrationCard = ({ 
-  source, 
-  status, 
-  onConnect 
-}: { 
-  source: DataSource, 
-  status: ConnectionStatus, 
-  onConnect: () => void 
-}) => {
-  return (
-    <div className="bg-white border border-border rounded-card shadow-card p-5 flex flex-col h-full transition-all hover:border-primary/30 hover:shadow-md">
-      <div className="flex items-start justify-between mb-4">
-        <div className={`w-12 h-12 rounded flex items-center justify-center ${status === 'connected' ? 'bg-success/10 text-success' : 'bg-background-muted text-primary'}`}>
-          {source.icon}
-        </div>
-        <div>
-          {status === 'connected' && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-success/10 text-success text-xs font-medium border border-success/20">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Connected
-            </span>
-          )}
-          {status === 'connecting' && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-warning/10 text-warning text-xs font-medium border border-warning/20">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Connecting
-            </span>
-          )}
-          {status === 'disconnected' && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-background-muted text-text-secondary text-xs font-medium border border-border">
-              <AlertCircle className="w-3.5 h-3.5" /> Not Connected
-            </span>
-          )}
-        </div>
-      </div>
-      
-      <div className="flex-grow">
-        <h3 className="text-base font-semibold text-text-primary mb-1">{source.name}</h3>
-        <p className="text-xs text-text-secondary leading-relaxed">{source.description}</p>
-      </div>
-
-      <div className="mt-6 pt-4 border-t border-border">
-        {status === 'connected' ? (
-          <button 
-            className="w-full py-2 bg-white border border-border rounded text-sm font-medium text-text-primary hover:bg-background-muted transition-colors"
-            onClick={onConnect}
-          >
-            Manage Connection
-          </button>
-        ) : (
-          <button 
-            disabled={status === 'connecting'}
-            className="w-full py-2 bg-primary hover:bg-primary-hover text-white rounded text-sm font-medium transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
-            onClick={onConnect}
-          >
-            {status === 'connecting' ? 'Authenticating...' : 'Connect'}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-};
 
 const AnalysisWorkflow = () => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -105,7 +46,7 @@ const AnalysisWorkflow = () => {
 
   const steps = [
     { title: "Initializing AI Credit Workspace", desc: "Setting up CreditPilot AI multi-agent workspace." },
-    { title: "Agent 1: Financial Intelligence Agent", desc: "Analyzing GST, AA, EPFO, and bank statement cash flow metrics." },
+    { title: "Agent 1: Financial Intelligence Agent", desc: "Analyzing GST, AA, and UPI cash flow metrics." },
     { title: "Agent 2: Risk & Compliance Agent", desc: "Running RBI policy checks and anomaly/fraud pattern validations." },
     { title: "Agent 3: AI Credit Copilot", desc: "Synthesizing agent inputs to generate explainable recommendations." },
     { title: "Compiling Credit Assessment Report", desc: "Finalizing dashboard underwriting profiles." }
@@ -230,7 +171,7 @@ const AnalysisWorkflow = () => {
 
   return (
     <div className="w-full max-w-2xl mx-auto py-12 px-4">
-      <motion.div 
+      <framerMotion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-white border border-border rounded-card shadow-card p-8 md:p-12"
@@ -273,7 +214,7 @@ const AnalysisWorkflow = () => {
             <span>{Math.round((currentStep / steps.length) * 100)}%</span>
           </div>
           <div className="w-full h-2 bg-background-muted rounded-full overflow-hidden">
-            <motion.div 
+            <framerMotion.div 
               className="h-full bg-primary"
               initial={{ width: 0 }}
               animate={{ width: `${(currentStep / steps.length) * 100}%` }}
@@ -282,15 +223,18 @@ const AnalysisWorkflow = () => {
           </div>
         </div>
 
-      </motion.div>
+      </framerMotion.div>
     </div>
   );
 };
 
 export default function BusinessRegistration() {
-  const [statuses, setStatuses] = useState<Record<string, ConnectionStatus>>(
-    DATA_SOURCES.reduce((acc, source) => ({ ...acc, [source.id]: 'disconnected' }), {})
-  );
+  const [activeStep, setActiveStep] = useState(0);
+  const [statuses, setStatuses] = useState<Record<string, ConnectionStatus>>({
+    gst: 'disconnected',
+    aa: 'disconnected',
+    upi: 'disconnected'
+  });
   
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
@@ -305,7 +249,8 @@ export default function BusinessRegistration() {
     }, 1000);
   };
 
-  const connectedCount = Object.values(statuses).filter(s => s === 'connected').length;
+  const currentSource = WIZARD_STEPS[activeStep];
+  const isCurrentStepConnected = currentSource && statuses[currentSource.id] === 'connected';
 
   return (
     <div className="min-h-screen flex flex-col bg-background font-sans selection:bg-primary selection:text-white">
@@ -321,57 +266,143 @@ export default function BusinessRegistration() {
       </nav>
       
       <main className="flex-grow flex flex-col items-center">
-        <AnimatePresence mode="wait">
+        <FramerAnimatePresence mode="wait">
           {!isAnalyzing ? (
-            <motion.div 
+            <framerMotion.div 
               key="connection-view"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
               transition={{ duration: 0.3 }}
-              className="w-full flex-grow flex flex-col"
+              className="w-full flex-grow flex flex-col max-w-3xl mx-auto px-6 py-12"
             >
-              <div className="w-full max-w-[1440px] mx-auto px-6 lg:px-12 py-8 flex-grow">
-                <div className="mb-8 max-w-3xl">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-border rounded-full text-xs font-medium text-text-secondary mb-4 shadow-sm">
-                    <ShieldCheck className="w-4 h-4 text-success" />
-                    Bank-grade 256-bit encryption
-                  </div>
-                  <h1 className="text-2xl md:text-3xl font-semibold text-text-primary mb-2">Connect Your Financial Data</h1>
-                  <p className="text-sm text-text-secondary">Securely connect alternate financial data sources. More connected sources yield a highly accurate assessment and better loan recommendations.</p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {DATA_SOURCES.map((source) => (
-                    <IntegrationCard 
-                      key={source.id} 
-                      source={source} 
-                      status={statuses[source.id]} 
-                      onConnect={() => handleConnect(source.id)} 
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="sticky bottom-0 bg-white border-t border-border mt-auto z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-                <div className="max-w-[1440px] mx-auto px-6 lg:px-12 h-20 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-text-primary">{connectedCount} Sources Connected</span>
-                      <span className="text-xs text-text-secondary">Minimum 2 recommended</span>
+              {/* Stepper Progress Indicator */}
+              <div className="flex items-center justify-between mb-10 border-b border-border pb-6">
+                {WIZARD_STEPS.map((step, idx) => {
+                  const isPast = idx < activeStep;
+                  const isCurrent = idx === activeStep;
+                  return (
+                    <div key={step.id} className="flex items-center gap-2">
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                        isPast 
+                          ? 'bg-success text-white' 
+                          : isCurrent 
+                          ? 'bg-primary text-white ring-4 ring-primary/20' 
+                          : 'bg-background-muted text-text-secondary border border-border'
+                      }`}>
+                        {isPast ? '✓' : idx + 1}
+                      </div>
+                      <span className={`text-xs font-semibold hidden md:inline ${
+                        isCurrent ? 'text-primary' : isPast ? 'text-success' : 'text-text-secondary'
+                      }`}>
+                        {step.id.toUpperCase()} Connection
+                      </span>
+                      {idx < WIZARD_STEPS.length - 1 && (
+                        <div className="w-8 h-[1px] bg-border mx-2 hidden md:block" />
+                      )}
                     </div>
-                  </div>
-                  <button 
-                    onClick={() => setIsAnalyzing(true)}
-                    className="bg-primary hover:bg-primary-hover text-white px-8 py-2.5 rounded font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
-                  >
-                    Start Financial Assessment <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
+                  );
+                })}
               </div>
-            </motion.div>
+
+              {/* Central Dynamic Connection Box */}
+              {activeStep < WIZARD_STEPS.length ? (
+                <framerMotion.div
+                  key={currentSource.id}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white border border-border rounded-card p-8 md:p-12 shadow-card flex flex-col items-center text-center"
+                >
+                  <div className="w-20 h-20 bg-primary/5 rounded-full flex items-center justify-center mb-6 border border-primary/10">
+                    {currentSource.icon}
+                  </div>
+                  
+                  <span className="text-[10px] bg-success/15 text-success border border-success/20 font-bold px-3 py-1 rounded-full mb-3 flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5" /> {currentSource.infoLabel}
+                  </span>
+
+                  <h2 className="text-xl font-bold text-text-primary mb-3">{currentSource.name}</h2>
+                  <p className="text-sm text-text-secondary max-w-md mb-8 leading-relaxed">
+                    {currentSource.description}
+                  </p>
+
+                  <div className="w-full max-w-xs space-y-4">
+                    {statuses[currentSource.id] === 'connected' ? (
+                      <div className="p-3 border border-success bg-success/5 rounded flex items-center justify-center gap-2 text-success font-semibold text-sm">
+                        <CheckCircle2 className="w-4 h-4" /> Connected Successfully
+                      </div>
+                    ) : statuses[currentSource.id] === 'connecting' ? (
+                      <button 
+                        disabled 
+                        className="w-full py-3 bg-warning text-white rounded font-medium text-sm flex items-center justify-center gap-2"
+                      >
+                        <Loader2 className="w-4 h-4 animate-spin" /> Fetching Authorization...
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => handleConnect(currentSource.id)}
+                        className="w-full py-3 bg-primary hover:bg-primary-hover text-white rounded font-semibold text-sm transition-colors shadow-sm"
+                      >
+                        Consent & Connect
+                      </button>
+                    )}
+                  </div>
+                </framerMotion.div>
+              ) : (
+                // Final submission summary view
+                <framerMotion.div 
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white border border-border rounded-card p-8 md:p-12 shadow-card"
+                >
+                  <h2 className="text-xl font-bold text-text-primary mb-2 text-center">Ready to Assess Financial Health</h2>
+                  <p className="text-xs text-text-secondary text-center mb-8">All required consent channels have been configured successfully.</p>
+                  
+                  <div className="space-y-4 max-w-md mx-auto mb-10">
+                    {WIZARD_STEPS.map((step) => (
+                      <div key={step.id} className="p-4 border border-border rounded-card flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <CheckCircle2 className="w-5 h-5 text-success" />
+                          <span className="text-xs font-bold text-text-primary">{step.name}</span>
+                        </div>
+                        <span className="text-[10px] font-bold text-success uppercase">Active</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-center">
+                    <button 
+                      onClick={() => setIsAnalyzing(true)}
+                      className="bg-primary hover:bg-primary-hover text-white px-8 py-3 rounded-card font-semibold text-sm flex items-center gap-2 transition-colors shadow-sm"
+                    >
+                      Start Financial Assessment <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </framerMotion.div>
+              )}
+
+              {/* Navigation Back / Next Toggles */}
+              <div className="flex items-center justify-between mt-10">
+                <button
+                  disabled={activeStep === 0}
+                  onClick={() => setActiveStep(prev => prev - 1)}
+                  className="px-4 py-2 border border-border rounded text-xs font-semibold text-text-secondary hover:bg-background-muted transition-colors disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" /> Back
+                </button>
+                {activeStep < WIZARD_STEPS.length && (
+                  <button
+                    disabled={!isCurrentStepConnected}
+                    onClick={() => setActiveStep(prev => prev + 1)}
+                    className="px-5 py-2 bg-primary hover:bg-primary-hover text-white rounded text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                  >
+                    Next Connection <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </framerMotion.div>
           ) : (
-            <motion.div 
+            <framerMotion.div 
               key="analysis-view"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -379,9 +410,9 @@ export default function BusinessRegistration() {
               className="w-full flex-grow flex items-center justify-center bg-background"
             >
               <AnalysisWorkflow />
-            </motion.div>
+            </framerMotion.div>
           )}
-        </AnimatePresence>
+        </FramerAnimatePresence>
       </main>
     </div>
   );
