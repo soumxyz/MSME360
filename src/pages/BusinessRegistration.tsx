@@ -238,16 +238,33 @@ export default function BusinessRegistration() {
   
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+  const autoConnect = (id: string) => {
+    setStatuses(prev => ({ ...prev, [id]: 'connecting' }));
+    setTimeout(() => {
+      setStatuses(prev => ({ ...prev, [id]: 'connected' }));
+    }, 1500); // 1.5s animation proper
+  };
+
   const handleConnect = (id: string) => {
     if (statuses[id] === 'connected') {
       setStatuses(prev => ({ ...prev, [id]: 'disconnected' }));
       return;
     }
-    setStatuses(prev => ({ ...prev, [id]: 'connecting' }));
-    setTimeout(() => {
-      setStatuses(prev => ({ ...prev, [id]: 'connected' }));
-    }, 1000);
+    autoConnect(id);
   };
+
+  // Automatically start connecting the next source when the active step mounts
+  useEffect(() => {
+    if (activeStep < WIZARD_STEPS.length) {
+      const source = WIZARD_STEPS[activeStep];
+      if (statuses[source.id] === 'disconnected') {
+        const timer = setTimeout(() => {
+          autoConnect(source.id);
+        }, 600); // Small delay to let transitions finish
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [activeStep]);
 
   const currentSource = WIZARD_STEPS[activeStep];
   const isCurrentStepConnected = currentSource && statuses[currentSource.id] === 'connected';
