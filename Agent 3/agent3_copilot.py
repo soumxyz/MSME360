@@ -7,6 +7,7 @@ import urllib.error
 # Without keys the copilot falls back to the local mock generator below.
 GEMINI_KEY = os.environ.get("GEMINI_API_KEY")
 OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY")
+GROQ_KEY = os.environ.get("GROQ_API_KEY")
 
 def call_llm(system_prompt: str, user_message: str):
     messages = [
@@ -14,7 +15,28 @@ def call_llm(system_prompt: str, user_message: str):
         {"role": "user", "content": user_message}
     ]
 
-    # 1. Try Gemini API first if configured
+    # 1. Try Groq API first if configured
+    if GROQ_KEY:
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {GROQ_KEY}",
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        }
+        data = {
+            "model": "llama-3.1-8b-instant",
+            "messages": messages,
+            "max_tokens": 400
+        }
+        try:
+            req = urllib.request.Request(url, data=json.dumps(data).encode("utf-8"), headers=headers, method="POST")
+            with urllib.request.urlopen(req, timeout=12) as response:
+                res = json.loads(response.read().decode("utf-8"))
+                return res["choices"][0]["message"]["content"].strip()
+        except Exception as e:
+            print(f"Groq API call failed: {e}. Trying next provider...")
+
+    # 2. Try Gemini API next if configured
     if GEMINI_KEY:
         # Re-format chat messages to Gemini's native generateContent schema
         gemini_contents = []
@@ -43,7 +65,7 @@ def call_llm(system_prompt: str, user_message: str):
         except Exception as e:
             print(f"Gemini API general failure: {e}. Trying OpenRouter next...")
 
-    # 2. Try OpenRouter API next if configured
+    # 3. Try OpenRouter API next if configured
     if OPENROUTER_KEY:
         url = "https://openrouter.ai/api/v1/chat/completions"
         headers = {
@@ -66,7 +88,7 @@ def call_llm(system_prompt: str, user_message: str):
         except Exception as e:
             print(f"OpenRouter API call failed: {e}. Falling back to mock generator...")
 
-    # 3. Fallback to Local Mock responses if API keys are missing/rate-limited
+    # 4. Fallback to Local Mock responses if API keys are missing/rate-limited
     import re
     query = user_message.lower()
     
