@@ -7,6 +7,13 @@ import json
 from pydantic import BaseModel
 from datetime import datetime, timezone
 
+# Load environment variables from .env file if it exists
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
+except ImportError:
+    pass
+
 # Add risk agent to path to allow importing its modules
 RISK_AGENT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "risk agent")
 if RISK_AGENT_DIR not in sys.path:
