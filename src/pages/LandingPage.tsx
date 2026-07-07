@@ -41,8 +41,8 @@ const Navbar = () => (
         <a href="#" className="hover:text-primary transition-colors">About</a>
       </div>
       <div className="flex items-center gap-4 text-sm font-medium">
-        <Link to="/officer/dashboard" className="text-text-primary hover:text-primary transition-colors">Officer Login</Link>
-        <Link to="/register" className="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded transition-colors">
+        <Link to="/login?role=officer" className="text-text-primary hover:text-primary transition-colors">Officer Login</Link>
+        <Link to="/login?role=customer" className="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded transition-colors">
           Open Account
         </Link>
       </div>
@@ -66,7 +66,7 @@ const Hero = () => (
             Leverage institutional-grade artificial intelligence to analyze your business's financial health, integrate alternate data sources, and receive intelligent loan recommendations tailored to your operational metrics.
           </p>
           <div className="flex flex-wrap items-center gap-4">
-            <Link to="/register" className="bg-primary hover:bg-primary-hover text-white px-6 py-3 rounded font-medium flex items-center gap-2 transition-colors">
+            <Link to="/login?role=customer" className="bg-primary hover:bg-primary-hover text-white px-6 py-3 rounded font-medium flex items-center gap-2 transition-colors">
               Start Assessment <ArrowRight className="w-4 h-4" />
             </Link>
             <button className="bg-white border border-border hover:bg-background text-text-primary px-6 py-3 rounded font-medium transition-colors">
