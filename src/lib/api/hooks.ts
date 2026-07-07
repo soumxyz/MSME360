@@ -18,6 +18,7 @@ export function useBusinessDetail(id: string | undefined) {
     queryKey: ["business", activeId],
     queryFn: () => getBusinessDetail(activeId!),
     enabled: !!activeId,
+    refetchInterval: 5000, // Poll every 5s so officer decisions (Approved/Rejected) appear on customer side in real-time
   });
 }
 

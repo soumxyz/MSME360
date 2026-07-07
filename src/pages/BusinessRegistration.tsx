@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -130,6 +131,7 @@ const AnalysisWorkflow = ({ businessId }: { businessId: string }) => {
 
 export default function BusinessRegistration() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState(1);
   const [direction, setDirection] = useState(1);
 
@@ -368,6 +370,8 @@ export default function BusinessRegistration() {
 
       const result = await registerMSME(payload);
       localStorage.setItem('active_business_id', result.business_id);
+      queryClient.invalidateQueries({ queryKey: ['business'] });
+      queryClient.invalidateQueries({ queryKey: ['portfolio'] });
       setRegisteredId(result.business_id);
       setIsAnalyzing(true);
     } catch (err: any) {
