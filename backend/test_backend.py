@@ -53,4 +53,31 @@ def test_copilot():
     assert "answer" in data
     assert len(data["answer"]) > 0
 
+def test_intake_register():
+    payload = {
+        "business_name": "Test Cotton Mills",
+        "owner_name": "Vikram Seth",
+        "mobile_number": "9999999999",
+        "email": "vikram@cotton.com",
+        "pan_number": "ABCDE1234F",
+        "gstin": "27ABCDE1234F1Z5",
+        "udyam_number": "UDYAM-GJ-01-12345",
+        "business_type": "Partnership",
+        "industry": "Manufacturing",
+        "years_in_business": 4,
+        "loan_amount_required": 1000000.0,
+        "loan_purpose": "Working Capital",
+        "connect_gst": True,
+        "connect_aa": True,
+        "connect_upi": True,
+        "connect_epfo": True
+    }
+    response = client.post("/api/intake/register", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert "business_id" in data
+    assert data["score"] > 0
+    assert "band" in data
+    assert "report" in data
+
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Outlet, NavLink, Link } from 'react-router-dom';
+import { Outlet, NavLink, Link, useNavigate } from 'react-router-dom';
 import {
   Activity,
   LayoutDashboard,
@@ -10,7 +10,9 @@ import {
   Lightbulb,
   Files,
   Menu,
-  X
+  X,
+  LogOut,
+  ChevronDown
 } from 'lucide-react';
 import { useBusinessDetail } from '../lib/api/hooks';
 import { DEMO_BUSINESS_ID } from '../lib/customer';
@@ -94,8 +96,27 @@ const MobileDrawer = ({ open, onClose }: { open: boolean, onClose: () => void })
 
 const Topbar = ({ onMenuOpen }: { onMenuOpen: () => void }) => {
   const { data } = useBusinessDetail(DEMO_BUSINESS_ID);
+  const navigate = useNavigate();
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  
   const businessName = data?.profile.name ?? 'Loading…';
   const initials = data?.profile.name.split(' ').map((w) => w[0]).slice(0, 2).join('') ?? '··';
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!showUserMenu) return;
+    const handleClick = () => setShowUserMenu(false);
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [showUserMenu]);
+
+  const handleSignOut = () => {
+    // Clear any stored session data
+    localStorage.removeItem('user');
+    sessionStorage.clear();
+    // Navigate to login
+    navigate('/login');
+  };
 
   return (
     <header className="h-16 bg-white border-b border-border flex items-center justify-between px-4 sm:px-6 sticky top-0 z-40">
@@ -114,10 +135,34 @@ const Topbar = ({ onMenuOpen }: { onMenuOpen: () => void }) => {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm border border-primary/20" aria-hidden="true">
-          {initials}
-        </div>
+      <div className="relative flex items-center gap-2">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowUserMenu(!showUserMenu);
+          }}
+          className="flex items-center gap-2 hover:bg-background-muted px-2 py-1 rounded transition-colors"
+        >
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm border border-primary/20" aria-hidden="true">
+            {initials}
+          </div>
+          <ChevronDown className="w-4 h-4 text-text-secondary hidden md:block" />
+        </button>
+        
+        {showUserMenu && (
+          <div className="absolute right-0 top-12 w-48 bg-white border border-border rounded-lg shadow-lg py-2 z-50">
+            <div className="px-4 py-2 border-b border-border">
+              <p className="text-xs font-semibold text-text-primary">{businessName}</p>
+            </div>
+            <button
+              onClick={handleSignOut}
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-text-primary hover:bg-background-muted transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

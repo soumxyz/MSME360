@@ -58,10 +58,10 @@ export default function LoanRecommendations() {
 
   // Product ladder scaled from the model's recommended exposure
   const loanProducts = [
-    { id: 'wc', title: 'Working Capital Loan', icon: <Building2 className="w-6 h-6" aria-hidden="true" />, amount: rec.loan_amount, rate: baseRate, preApproved: score >= 55 },
-    { id: 'exp', title: 'Business Expansion', icon: <Briefcase className="w-6 h-6" aria-hidden="true" />, amount: Math.round(rec.loan_amount * 1.5), rate: baseRate + 0.5, preApproved: score >= 75 },
-    { id: 'machinery', title: 'Machinery Term Loan', icon: <Settings className="w-6 h-6" aria-hidden="true" />, amount: Math.round(rec.loan_amount * 0.6), rate: baseRate + 1.0, preApproved: score >= 65 },
-    { id: 'vehicle', title: 'Commercial Vehicle', icon: <Truck className="w-6 h-6" aria-hidden="true" />, amount: Math.round(rec.loan_amount * 0.35), rate: baseRate - 1.0, preApproved: score >= 55 },
+    { id: 'wc', title: 'IDBI MSME Cash Credit (CC)', icon: <Building2 className="w-6 h-6" aria-hidden="true" />, amount: rec.loan_amount, rate: baseRate, preApproved: score >= 55 },
+    { id: 'exp', title: 'IDBI MSME Term Loan', icon: <Briefcase className="w-6 h-6" aria-hidden="true" />, amount: Math.round(rec.loan_amount * 1.5), rate: baseRate + 0.5, preApproved: score >= 75 },
+    { id: 'machinery', title: 'IDBI Equipment Finance Scheme', icon: <Settings className="w-6 h-6" aria-hidden="true" />, amount: Math.round(rec.loan_amount * 0.6), rate: baseRate + 1.0, preApproved: score >= 65 },
+    { id: 'vehicle', title: 'IDBI Commercial Vehicle Loan', icon: <Truck className="w-6 h-6" aria-hidden="true" />, amount: Math.round(rec.loan_amount * 0.35), rate: baseRate - 1.0, preApproved: score >= 55 },
   ];
 
   const totalEligible = loanProducts.filter((p) => p.preApproved).reduce((acc, p) => acc + p.amount, 0);

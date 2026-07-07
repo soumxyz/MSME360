@@ -8,6 +8,9 @@ import {
   Sparkles,
   ArrowRight,
   Info,
+  Mic,
+  MicOff,
+  Volume2
 } from "lucide-react";
 import type { BusinessDetail } from "../lib/api/types";
 import { cn } from "../lib/cn";
@@ -33,7 +36,11 @@ export function ChatPanel({ isOpen, onClose, business, onDraftMemo }: ChatPanelP
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     if (messages.length === 0 && business) {
@@ -55,6 +62,53 @@ export function ChatPanel({ isOpen, onClose, business, onDraftMemo }: ChatPanelP
 
   if (!isOpen) return null;
 
+  const startSpeechToText = () => {
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in this browser.");
+      return;
+    }
+    const rec = new SpeechRecognition();
+    rec.continuous = false;
+    rec.interimResults = false;
+    rec.lang = "en-IN"; // English (India)
+    
+    rec.onstart = () => setIsListening(true);
+    rec.onend = () => setIsListening(false);
+    rec.onerror = () => setIsListening(false);
+    rec.onresult = (event: any) => {
+      const text = event.results[0][0].transcript;
+      setInput(text);
+    };
+    recognitionRef.current = rec;
+    rec.start();
+  };
+
+  const stopSpeechToText = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+  };
+
+  const toggleListening = () => {
+    if (isListening) {
+      stopSpeechToText();
+    } else {
+      startSpeechToText();
+    }
+  };
+
+  const speakText = (text: string) => {
+    if (!window.speechSynthesis) {
+      alert("Speech synthesis is not supported in this browser.");
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    window.speechSynthesis.speak(utterance);
+  };
+
   const handleSend = async (text: string) => {
     if (!text.trim()) return;
 
@@ -68,7 +122,6 @@ export function ChatPanel({ isOpen, onClose, business, onDraftMemo }: ChatPanelP
     setInput("");
     setIsTyping(true);
 
-    // Log locally for instant compatibility feedback
     addAuditEvent({
       type: "copilot",
       business_id: business.business_id,
@@ -77,19 +130,15 @@ export function ChatPanel({ isOpen, onClose, business, onDraftMemo }: ChatPanelP
     });
 
     try {
-      // Query the dynamic LLM endpoint on the FastAPI server
       const response = await queryCopilot(business.business_id, text);
       const reply = response.answer;
-
       const lowerReply = reply.toLowerCase();
       const isDecline = lowerReply.includes("cannot answer") || lowerReply.includes("out of scope") || lowerReply.includes("out-of-scope");
       
-      // Auto-tag SHAP factor chips if the LLM response text mentions them
       const referencedFactors = business.factors
         .filter((f) => lowerReply.includes(f.label.toLowerCase()) || lowerReply.includes(f.name.toLowerCase()))
         .map((f) => f.label);
 
-      // Trigger draft memo if requested
       if (lowerReply.includes("credit memo") || lowerReply.includes("draft memo")) {
         setTimeout(() => onDraftMemo(), 1200);
       }
@@ -129,12 +178,12 @@ export function ChatPanel({ isOpen, onClose, business, onDraftMemo }: ChatPanelP
   return (
     <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[420px] flex-col border-l border-border bg-white shadow-2xl transition-transform duration-300">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-3.5 bg-background-muted/50">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3.5 bg-[#fafafa]">
         <div className="flex items-center gap-2">
           <Bot className="w-5 h-5 text-primary" aria-hidden />
           <div>
             <h2 className="text-sm font-semibold text-text-primary">Credit Copilot</h2>
-            <p className="text-[10px] font-semibold text-primary flex items-center gap-1">
+            <p className="text-[10px] font-semibold text-[#008269] flex items-center gap-1">
               <ShieldCheck className="w-3 h-3 text-success" /> Grounded Scored Factors
             </p>
           </div>
@@ -148,8 +197,8 @@ export function ChatPanel({ isOpen, onClose, business, onDraftMemo }: ChatPanelP
         </button>
       </div>
 
-      {/* Grounding Warning Discipline */}
-      <div className="flex items-start gap-2 bg-primary/5 px-4 py-2 text-[11px] text-primary border-b border-primary/10">
+      {/* Grounding Warning */}
+      <div className="flex items-start gap-2 bg-[#008269]/5 px-4 py-2 text-[11px] text-[#008269] border-b border-[#008269]/10">
         <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
         <p>
           <strong>Anti-Hallucination Discipline:</strong> Answers are restricted to factors generated from verified bank statements and GST filings.
@@ -181,7 +230,7 @@ export function ChatPanel({ isOpen, onClose, business, onDraftMemo }: ChatPanelP
             {/* Bubble */}
             <div
               className={cn(
-                "rounded-lg p-3 text-xs leading-relaxed",
+                "rounded-lg p-3 text-xs leading-relaxed position-relative",
                 m.role === "user"
                   ? "bg-primary text-white rounded-tr-none"
                   : m.isDecline
@@ -189,13 +238,25 @@ export function ChatPanel({ isOpen, onClose, business, onDraftMemo }: ChatPanelP
                   : "bg-background-muted/80 text-text-primary rounded-tl-none"
               )}
             >
-              {m.content.split("\n\n").map((para, i) => (
-                <p key={i} className={i > 0 ? "mt-2" : ""}>
-                  {para}
-                </p>
-              ))}
+              <div className="flex justify-between items-start gap-2">
+                <div className="flex-1">
+                  {m.content.split("\n\n").map((para, i) => (
+                    <p key={i} className={i > 0 ? "mt-2" : ""}>
+                      {para}
+                    </p>
+                  ))}
+                </div>
+                {m.role === "assistant" && (
+                  <button
+                    onClick={() => speakText(m.content)}
+                    className="p-1 rounded text-text-secondary hover:text-[#008269] hover:bg-white/50 transition-colors cursor-pointer shrink-0"
+                    title="Read Aloud"
+                  >
+                    <Volume2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
 
-              {/* Display cited factors as tag pills */}
               {m.factors && m.factors.length > 0 && (
                 <div className="mt-2.5 flex flex-wrap gap-1">
                   {m.factors.map((f) => (
@@ -247,7 +308,7 @@ export function ChatPanel({ isOpen, onClose, business, onDraftMemo }: ChatPanelP
         </div>
       </div>
 
-      {/* Text Area Input */}
+      {/* Input Form */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -255,6 +316,20 @@ export function ChatPanel({ isOpen, onClose, business, onDraftMemo }: ChatPanelP
         }}
         className="flex items-center gap-2 border-t border-border bg-white p-3"
       >
+        <button
+          type="button"
+          onClick={toggleListening}
+          className={cn(
+            "w-8 h-8 flex items-center justify-center rounded border transition-colors cursor-pointer",
+            isListening
+              ? "bg-error/15 border-error text-error animate-pulse"
+              : "bg-background-muted border-border text-text-secondary hover:text-[#008269]"
+          )}
+          title={isListening ? "Listening... Click to stop" : "Start Voice Query"}
+        >
+          {isListening ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
+        </button>
+
         <input
           type="text"
           placeholder="Ask a question..."
@@ -263,6 +338,7 @@ export function ChatPanel({ isOpen, onClose, business, onDraftMemo }: ChatPanelP
           disabled={isTyping}
           className="flex-1 rounded-md border border-border px-3 py-2 text-xs text-text-primary placeholder:text-text-secondary/70 focus:border-primary focus:outline-none"
         />
+        
         <button
           type="submit"
           className="w-8 h-8 p-0 flex items-center justify-center rounded bg-primary hover:bg-primary-hover text-white disabled:opacity-50 cursor-pointer transition-colors"

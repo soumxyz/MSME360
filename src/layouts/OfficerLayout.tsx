@@ -10,7 +10,9 @@ import {
   Search,
   Menu,
   X,
-  Users
+  Users,
+  LogOut,
+  ChevronDown
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -50,12 +52,15 @@ const NavItem = ({ to, icon: Icon, label, onNavigate }: { to: string, icon: Reac
 
 const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => (
   <>
-    <div className="h-16 flex items-center px-6 border-b border-primary-hover shrink-0">
+    <div className="h-16 flex items-center px-6 border-b border-primary-hover shrink-0 bg-gradient-to-r from-primary to-primary-hover">
       <Link to="/" className="flex items-center gap-2" onClick={onNavigate}>
-        <div className="w-8 h-8 bg-white rounded flex items-center justify-center">
+        <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center shadow-md">
           <Activity className="w-5 h-5 text-primary" aria-hidden="true" />
         </div>
-        <span className="font-semibold text-lg text-white tracking-tight">IDBI Officer Hub</span>
+        <div>
+          <span className="font-bold text-base text-white tracking-tight block">IDBI Bank</span>
+          <span className="text-[10px] text-white/80 tracking-wide">Credit Officer Portal</span>
+        </div>
       </Link>
     </div>
 
@@ -65,8 +70,15 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => (
       ))}
     </div>
 
-    <div className="p-4 border-t border-primary-hover shrink-0">
+    <div className="p-4 border-t border-primary-hover shrink-0 bg-primary/20">
       <NavItem to="/officer/settings" icon={Settings} label="Settings" onNavigate={onNavigate} />
+      <div className="mt-3 px-3 py-2 bg-white/10 rounded text-xs text-white/70">
+        <p className="font-medium text-white/90 mb-1">System Status</p>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
+          <span>All Systems Operational</span>
+        </div>
+      </div>
     </div>
   </>
 );
@@ -106,8 +118,17 @@ const Topbar = ({ onMenuOpen }: { onMenuOpen: () => void }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const title = PAGE_TITLES.find(([prefix]) => location.pathname.startsWith(prefix))?.[1] ?? 'Officer Hub';
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!showUserMenu) return;
+    const handleClick = () => setShowUserMenu(false);
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [showUserMenu]);
 
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,8 +136,16 @@ const Topbar = ({ onMenuOpen }: { onMenuOpen: () => void }) => {
     navigate(q ? `/officer/dashboard?q=${encodeURIComponent(q)}` : '/officer/dashboard');
   };
 
+  const handleSignOut = () => {
+    // Clear any stored session data
+    localStorage.removeItem('user');
+    sessionStorage.clear();
+    // Navigate to login
+    navigate('/login');
+  };
+
   return (
-    <header className="h-16 bg-white border-b border-border flex items-center justify-between px-4 sm:px-6 sticky top-0 z-40">
+    <header className="h-16 bg-white border-b border-border flex items-center justify-between px-4 sm:px-6 sticky top-0 z-40 shadow-sm">
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuOpen}
@@ -140,14 +169,35 @@ const Topbar = ({ onMenuOpen }: { onMenuOpen: () => void }) => {
             className="pl-9 pr-4 py-1.5 bg-background-muted border-none rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary w-80"
           />
         </form>
-        <div className="flex items-center gap-2 border-l border-border pl-4">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm border border-primary/20" aria-hidden="true">
-            RK
-          </div>
-          <div className="hidden md:block">
-            <p className="text-xs font-semibold text-text-primary">Rajesh Kumar</p>
-            <p className="text-[10px] text-text-secondary">Senior Loan Officer</p>
-          </div>
+        <div className="relative flex items-center gap-2 border-l border-border pl-4">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowUserMenu(!showUserMenu);
+            }}
+            className="flex items-center gap-2 hover:bg-background-muted px-2 py-1 rounded transition-colors"
+          >
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm border border-primary/20" aria-hidden="true">
+              RK
+            </div>
+            <div className="hidden md:block text-left">
+              <p className="text-xs font-semibold text-text-primary">Rajesh Kumar</p>
+              <p className="text-[10px] text-text-secondary">Senior Loan Officer</p>
+            </div>
+            <ChevronDown className="w-4 h-4 text-text-secondary" />
+          </button>
+          
+          {showUserMenu && (
+            <div className="absolute right-0 top-12 w-48 bg-white border border-border rounded-lg shadow-lg py-2 z-50">
+              <button
+                onClick={handleSignOut}
+                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-text-primary hover:bg-background-muted transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </header>
@@ -157,9 +207,17 @@ const Topbar = ({ onMenuOpen }: { onMenuOpen: () => void }) => {
 export default function OfficerLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      // This will be handled by the Topbar component
+    };
+    return () => {};
+  }, []);
+
   return (
     <div className="min-h-screen bg-background font-sans selection:bg-primary selection:text-white flex">
-      <aside className="w-64 bg-primary border-r border-primary-hover hidden lg:flex flex-col h-screen fixed left-0 top-0">
+      <aside className="w-64 bg-primary border-r border-primary-hover hidden lg:flex flex-col h-screen fixed left-0 top-0 shadow-xl">
         <SidebarContent />
       </aside>
       <MobileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />

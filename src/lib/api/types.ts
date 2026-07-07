@@ -76,6 +76,8 @@ export interface BusinessDetail {
     existing_loan: boolean;
     existing_emi: number;
     annual_turnover: number;
+    pan?: string;
+    udyam?: string;
   };
   score: { score: number; band: RiskBand; confidence: number };
   factors: Factor[];
@@ -90,4 +92,5 @@ export interface BusinessDetail {
   metrics: KeyMetrics;
   officer_status: OfficerStatus;
   applied_at: string;
+  fraud_flags?: any[];
 }

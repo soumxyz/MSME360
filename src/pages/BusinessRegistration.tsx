@@ -16,139 +16,58 @@ import {
   XCircle,
   Loader2,
   ArrowRight,
+  ArrowLeft,
   ShieldCheck,
   Upload,
-  X
+  X,
+  Building2,
+  HelpCircle,
+  Check,
+  BrainCircuit
 } from 'lucide-react';
-import { submitIntake } from '../lib/api';
-import { addAuditEvent } from '../lib/audit';
+import { registerMSME } from '../lib/api';
 
-type ConnectionStatus = 'disconnected' | 'connecting' | 'connected';
-type VerdictType = "GREEN" | "YELLOW" | "RED" | null;
-
-interface DataSource {
-  id: string;
-  name: string;
-  icon: React.ReactNode;
-  description: string;
-}
-
-const DATA_SOURCES: DataSource[] = [
-  { id: 'gst', name: 'GST Returns', description: 'GSTR-1 & GSTR-3B data via GSTN', icon: <FileText className="w-6 h-6" /> },
-  { id: 'upi', name: 'UPI Transactions', description: 'Merchant QR collections & VPA', icon: <Smartphone className="w-6 h-6" /> },
-  { id: 'aa', name: 'Account Aggregator', description: 'Secure consent-based bank data', icon: <Landmark className="w-6 h-6" /> },
-  { id: 'epfo', name: 'EPFO', description: 'Employee provident fund records', icon: <Briefcase className="w-6 h-6" /> },
-  { id: 'bank', name: 'Bank Statements', description: 'Upload CSV statements securely', icon: <ScrollText className="w-6 h-6" /> },
-  { id: 'itr', name: 'Income Tax Returns', description: 'ITR-3 / ITR-4 acknowledgments', icon: <Receipt className="w-6 h-6" /> },
-  { id: 'utility', name: 'Utility Bills', description: 'Electricity & broadband payment history', icon: <Lightbulb className="w-6 h-6" /> },
-  { id: 'invoices', name: 'Sales Invoices', description: 'ERP or accounting software sync', icon: <FileStack className="w-6 h-6" /> },
+const steps = [
+  { title: "Aggregating Digital Consents", desc: "Financial Intelligence Agent is securely fetching records from GSTN, EPFO, and UPI networks." },
+  { title: "Normalizing Financial Accounts", desc: "Financial Intelligence Agent is structuring bank ledger transactions and computing operational cash flows." },
+  { title: "Verifying Risk & Compliance", desc: "Risk & Compliance Agent is validating PAN/Aadhaar/Udyam registries and running fraud detection heuristics." },
+  { title: "Compiling Financial Health Card", desc: "CreditPilot AI is scoring cash-buffer days, revenue growth stability, and digital payment ratios." },
+  { title: "Formulating Pre-Qualified Loan Offers", desc: "CreditPilot AI is mapping your dynamic score to IDBI Bank institutional credit limits." }
 ];
 
-const generateBankCSV = (months: number, creditsPerMonth: number, reconciled: boolean): string => {
-  let csv = "Date,Credit,Debit,Running_Balance\n";
-  let balance = 10000;
-  const startYear = 2025;
-  for (let m = 0; m < months; m++) {
-    const year = startYear + Math.floor(m / 12);
-    const monthStr = String((m % 12) + 1).padStart(2, '0');
-    for (let c = 0; c < creditsPerMonth; c++) {
-      const dayStr = String((c % 28) + 1).padStart(2, '0');
-      const cr = 2000 + (c * 100);
-      const db = 1500;
-      balance = balance + cr - db;
-      const actualBalance = (!reconciled && m === 1 && c === 5) ? balance - 5000 : balance;
-      csv += `${year}-${monthStr}-${dayStr},${cr},${db},${actualBalance}\n`;
-    }
-  }
-  return csv;
+const slideVariants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? 100 : -100,
+    opacity: 0
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+    transition: { duration: 0.35, ease: "easeInOut" as const }
+  },
+  exit: (direction: number) => ({
+    x: direction < 0 ? 100 : -100,
+    opacity: 0,
+    transition: { duration: 0.3, ease: "easeInOut" as const }
+  })
 };
 
-const IntegrationCard = ({ 
-  source, 
-  status, 
-  onConnect 
-}: { 
-  source: DataSource, 
-  status: ConnectionStatus, 
-  onConnect: () => void 
-}) => {
-  return (
-    <div className="bg-white border border-border rounded-card shadow-card p-5 flex flex-col h-full transition-all hover:border-primary/30 hover:shadow-md">
-      <div className="flex items-start justify-between mb-4">
-        <div className={`w-12 h-12 rounded flex items-center justify-center ${status === 'connected' ? 'bg-success/10 text-success' : 'bg-background-muted text-primary'}`}>
-          {source.icon}
-        </div>
-        <div>
-          {status === 'connected' && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-success/10 text-success text-xs font-medium border border-success/20">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Connected
-            </span>
-          )}
-          {status === 'connecting' && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-warning/10 text-warning text-xs font-medium border border-warning/20">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Connecting
-            </span>
-          )}
-          {status === 'disconnected' && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-background-muted text-text-secondary text-xs font-medium border border-border">
-              <AlertCircle className="w-3.5 h-3.5" /> Not Connected
-            </span>
-          )}
-        </div>
-      </div>
-      
-      <div className="flex-grow">
-        <h3 className="text-base font-semibold text-text-primary mb-1">{source.name}</h3>
-        <p className="text-xs text-text-secondary leading-relaxed">{source.description}</p>
-      </div>
-
-      <div className="mt-6 pt-4 border-t border-border">
-        {status === 'connected' ? (
-          <button 
-            className="w-full py-2 bg-white border border-border rounded text-sm font-medium text-text-primary hover:bg-background-muted transition-colors cursor-pointer"
-            onClick={onConnect}
-          >
-            Disconnect
-          </button>
-        ) : (
-          <button 
-            disabled={status === 'connecting'}
-            className="w-full py-2 bg-primary hover:bg-primary-hover text-white rounded text-sm font-medium transition-colors disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
-            onClick={onConnect}
-          >
-            {status === 'connecting' ? 'Authenticating...' : 'Connect'}
-          </button>
-        )}
-      </div>
-    </div>
-  );
-};
-
-const AnalysisWorkflow = () => {
+const AnalysisWorkflow = ({ businessId }: { businessId: string }) => {
   const [currentStep, setCurrentStep] = useState(0);
-  const navigate = useNavigate();
-
-  const steps = [
-    { title: "Aggregating Data Sources", desc: "Securely fetching data from connected integrations." },
-    { title: "Normalizing Financial Records", desc: "Structuring unstructured data formats." },
-    { title: "AI Pattern Recognition", desc: "Analyzing cash flow, working capital, and repayment capacity." },
-    { title: "Generating Health Score", desc: "Calculating institutional-grade credit score." },
-    { title: "Formulating Recommendations", desc: "Mapping profile to IDBI Bank credit facilities." }
-  ];
 
   useEffect(() => {
     if (currentStep < steps.length) {
       const timer = setTimeout(() => {
         setCurrentStep(prev => prev + 1);
-      }, 1500);
+      }, 1800);
       return () => clearTimeout(timer);
     } else {
       const timer = setTimeout(() => {
-        navigate('/customer/dashboard');
-      }, 1000);
+        window.location.href = '/customer/dashboard';
+      }, 800);
       return () => clearTimeout(timer);
     }
-  }, [currentStep, steps.length, navigate]);
+  }, [currentStep]);
 
   return (
     <div className="w-full max-w-2xl mx-auto py-12 px-4">
@@ -158,11 +77,11 @@ const AnalysisWorkflow = () => {
         className="bg-white border border-border rounded-card shadow-card p-8 md:p-12"
       >
         <div className="text-center mb-10">
-          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Activity className="w-8 h-8 text-primary animate-pulse" />
+          <div className="w-16 h-16 bg-[#008269]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Activity className="w-8 h-8 text-[#008269] animate-pulse" />
           </div>
-          <h2 className="text-2xl font-semibold text-text-primary mb-2">Analyzing Financial Health</h2>
-          <p className="text-sm text-text-secondary">Please wait while our AI processes your connected data sources.</p>
+          <h2 className="text-2xl font-semibold text-text-primary mb-2">Analyzing Business Creditworthiness</h2>
+          <p className="text-sm text-text-secondary">Please wait while our multi-agent AI system processes your application.</p>
         </div>
 
         <div className="space-y-6">
@@ -174,15 +93,15 @@ const AnalysisWorkflow = () => {
             return (
               <div key={index} className="flex items-start gap-4">
                 <div className="mt-0.5">
-                  {isCompleted && <CheckCircle2 className="w-5 h-5 text-success" />}
-                  {isActive && <Loader2 className="w-5 h-5 text-primary animate-spin" />}
+                  {isCompleted && <CheckCircle2 className="w-5 h-5 text-[#008269]" />}
+                  {isActive && <Loader2 className="w-5 h-5 text-[#008269] animate-spin" />}
                   {isPending && <div className="w-5 h-5 rounded-full border-2 border-border" />}
                 </div>
                 <div>
                   <h4 className={`text-sm font-semibold mb-0.5 ${isActive || isCompleted ? 'text-text-primary' : 'text-text-secondary'}`}>
                     {step.title}
                   </h4>
-                  <p className="text-xs text-text-secondary">{step.desc}</p>
+                  <p className="text-xs text-text-secondary leading-relaxed">{step.desc}</p>
                 </div>
               </div>
             );
@@ -196,7 +115,7 @@ const AnalysisWorkflow = () => {
           </div>
           <div className="w-full h-2 bg-background-muted rounded-full overflow-hidden">
             <motion.div 
-              className="h-full bg-primary"
+              className="h-full bg-[#008269]"
               initial={{ width: 0 }}
               animate={{ width: `${(currentStep / steps.length) * 100}%` }}
               transition={{ duration: 0.5 }}
@@ -210,349 +129,962 @@ const AnalysisWorkflow = () => {
 };
 
 export default function BusinessRegistration() {
-  const [statuses, setStatuses] = useState<Record<string, ConnectionStatus>>(
-    DATA_SOURCES.reduce((acc, source) => ({ ...acc, [source.id]: 'disconnected' }), {})
-  );
-  
+  const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState(1);
+  const [direction, setDirection] = useState(1);
+
+  // 1. Basic Business Information (Manual Input)
+  const [businessName, setBusinessName] = useState('');
+  const [ownerName, setOwnerName] = useState('');
+  const [mobileNumber, setMobileNumber] = useState('');
+  const [email, setEmail] = useState('');
+  const [panNumber, setPanNumber] = useState('');
+  const [gstin, setGstin] = useState('');
+  const [udyamNumber, setUdyamNumber] = useState('');
+  const [businessType, setBusinessType] = useState('Sole Proprietor');
+  const [industry, setIndustry] = useState('Manufacturing');
+  const [yearsInBusiness, setYearsInBusiness] = useState('');
+  const [loanAmount, setLoanAmount] = useState('');
+  const [loanPurpose, setLoanPurpose] = useState('Working Capital');
+
+  // 2. Digital Consent Connections (Toggles)
+  const [connectGst, setConnectGst] = useState(false);
+  const [connectAa, setConnectAa] = useState(false);
+  const [connectUpi, setConnectUpi] = useState(false);
+  const [connectEpfo, setConnectEpfo] = useState(false);
+
+  // Connecting loaders
+  const [connectingGst, setConnectingGst] = useState(false);
+  const [connectingAa, setConnectingAa] = useState(false);
+  const [connectingUpi, setConnectingUpi] = useState(false);
+  const [connectingEpfo, setConnectingEpfo] = useState(false);
+
+  // 3. Fallback File Uploads (Mock States)
+  const [panFile, setPanFile] = useState<string | null>(null);
+  const [aadhaarFile, setAadhaarFile] = useState<string | null>(null);
+  const [udyamFile, setUdyamFile] = useState<string | null>(null);
+  const [bankFile, setBankFile] = useState<string | null>(null);
+
+  // Submission / Loading states
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isUploaderOpen, setIsUploaderOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [registeredId, setRegisteredId] = useState('');
 
-  // Uploader compliance states
-  const [isParsing, setIsParsing] = useState(false);
-  const [verdict, setVerdict] = useState<VerdictType>(null);
-  const [checks, setChecks] = useState<any[]>([]);
-  const [uploadedFileName, setUploadedFileName] = useState<string>('');
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  // OCR Mocking States
+  const [isOcrLoading, setIsOcrLoading] = useState(false);
+  const [ocrProgressText, setOcrProgressText] = useState("");
+  const [ocrSuccess, setOcrSuccess] = useState<string | null>(null);
 
-  const handleConnect = (id: string) => {
-    if (statuses[id] === 'connected') {
-      setStatuses(prev => ({ ...prev, [id]: 'disconnected' }));
-      return;
-    }
-    
-    if (id === 'bank') {
-      setIsUploaderOpen(true);
-      return;
-    }
+  // Consent Sub-Step Animation States
+  const [consentSubStep, setConsentSubStep] = useState(1);
 
-    setStatuses(prev => ({ ...prev, [id]: 'connecting' }));
-    setTimeout(() => {
-      setStatuses(prev => ({ ...prev, [id]: 'connected' }));
-    }, 1000);
-  };
-
-  const handleUploadFile = async (file: File) => {
-    setIsParsing(true);
-    setUploadError(null);
-    setUploadedFileName(file.name);
-    try {
-      const response = await submitIntake(file);
-      setVerdict(response.verdict);
-      setChecks(response.checks);
-      
-      if ((response as any).business_id) {
-        localStorage.setItem('active_business_id', (response as any).business_id);
+  // Automatically trigger first connection when entering Step 2
+  useEffect(() => {
+    if (currentStep === 2) {
+      if (consentSubStep === 1 && !connectGst && !connectingGst) {
+        setConnectingGst(true);
+        const t = setTimeout(() => {
+          setConnectingGst(false);
+          setConnectGst(true);
+        }, 1500);
+        return () => clearTimeout(t);
       }
-      
-      addAuditEvent({
-        type: 'intake',
-        business_id: (response as any).business_id || 'CUST-NEW',
-        business_name: file.name.replace(".csv", "").replace("_", " ").title ? file.name.replace(".csv", "").replace("_", " ") : 'Custom MSME Registration',
-        summary: `Compliance verification result: ${response.verdict} (${response.checks.filter(c => c.status === 'pass').length}/${response.checks.length} passed)`
-      });
-    } catch (e) {
-      setUploadError('Intake validation request failed. Check that the backend is running on port 8000, then upload again.');
-    } finally {
-      setIsParsing(false);
     }
-  };
+  }, [currentStep, consentSubStep]);
 
-  const handlePresetSelect = async (presetType: 'green' | 'yellow' | 'red') => {
-    let csvContent = "";
-    let fileName = "";
-    
-    if (presetType === 'green') {
-      csvContent = generateBankCSV(12, 20, true);
-      fileName = "surat_silk_sarees_bank_statement.csv";
-    } else if (presetType === 'yellow') {
-      csvContent = generateBankCSV(12, 10, true);
-      fileName = "royal_hyderabadi_biryani_bank_statement.csv";
+  const handleNextConsentSubStep = () => {
+    if (consentSubStep === 1) {
+      setConsentSubStep(2);
+      setConnectingAa(true);
+      setTimeout(() => {
+        setConnectingAa(false);
+        setConnectAa(true);
+      }, 1500);
+    } else if (consentSubStep === 2) {
+      setConsentSubStep(3);
+      setConnectingUpi(true);
+      setTimeout(() => {
+        setConnectingUpi(false);
+        setConnectUpi(true);
+      }, 1500);
+    } else if (consentSubStep === 3) {
+      setConsentSubStep(4);
+      setConnectingEpfo(true);
+      setTimeout(() => {
+        setConnectingEpfo(false);
+        setConnectEpfo(true);
+      }, 1500);
     } else {
-      csvContent = generateBankCSV(4, 18, false);
-      fileName = "chennai_metal_components_bank_statement.csv";
+      goToNextStep();
     }
-
-    const file = new File([csvContent], fileName, { type: "text/csv" });
-    handleUploadFile(file);
   };
 
-  const handleCustomFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePrevConsentSubStep = () => {
+    if (consentSubStep > 1) {
+      if (consentSubStep === 2) { setConnectAa(false); setConsentSubStep(1); }
+      else if (consentSubStep === 3) { setConnectUpi(false); setConsentSubStep(2); }
+      else if (consentSubStep === 4) { setConnectEpfo(false); setConsentSubStep(3); }
+    } else {
+      goToPrevStep();
+    }
+  };
+
+  const handleOcrFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsOcrLoading(true);
+    setOcrSuccess(null);
+    setOcrProgressText("Initializing Gemini Vision OCR Engine...");
+    
+    setTimeout(() => {
+      setOcrProgressText("Scanning statement structure and transaction blocks...");
+      setTimeout(() => {
+        setOcrProgressText("Extracting business details & calculating cash-flow parameters...");
+        setTimeout(() => {
+          setIsOcrLoading(false);
+          setOcrSuccess("AI OCR Extraction Successful! Pre-filled manual fields.");
+          setBusinessName("Surat Silk Weaves");
+          setOwnerName("Abhishek Mohapatra");
+          setMobileNumber("9988776655");
+          setEmail("abhishek@silkweaves.in");
+          setPanNumber("ABCDE5678X");
+          setGstin("27ABCDE5678X1Z1");
+          setUdyamNumber("UDYAM-MH-12-0048291");
+          setYearsInBusiness("6");
+          setLoanAmount("1500000");
+          setBusinessType("Sole Proprietor");
+          setIndustry("Manufacturing");
+        }, 1200);
+      }, 1200);
+    }, 1200);
+  };
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Consent toggles simulation
+  const handleToggleConsent = (source: 'gst' | 'aa' | 'upi' | 'epfo') => {
+    if (source === 'gst') {
+      if (connectGst) { setConnectGst(false); return; }
+      setConnectingGst(true);
+      setTimeout(() => { setConnectingGst(false); setConnectGst(true); }, 1000);
+    } else if (source === 'aa') {
+      if (connectAa) { setConnectAa(false); return; }
+      setConnectingAa(true);
+      setTimeout(() => { setConnectingAa(false); setConnectAa(true); }, 1000);
+    } else if (source === 'upi') {
+      if (connectUpi) { setConnectUpi(false); return; }
+      setConnectingUpi(true);
+      setTimeout(() => { setConnectingUpi(false); setConnectUpi(true); }, 1000);
+    } else if (source === 'epfo') {
+      if (connectEpfo) { setConnectEpfo(false); return; }
+      setConnectingEpfo(true);
+      setTimeout(() => { setConnectingEpfo(false); setConnectEpfo(true); }, 1000);
+    }
+  };
+
+  // Mock file uploads handler
+  const handleMockUpload = (e: React.ChangeEvent<HTMLInputElement>, fileType: 'pan' | 'aadhaar' | 'udyam' | 'bank') => {
     if (e.target.files && e.target.files[0]) {
-      handleUploadFile(e.target.files[0]);
+      const name = e.target.files[0].name;
+      if (fileType === 'pan') setPanFile(name);
+      else if (fileType === 'aadhaar') setAadhaarFile(name);
+      else if (fileType === 'udyam') setUdyamFile(name);
+      else if (fileType === 'bank') setBankFile(name);
     }
   };
 
-  const confirmBankConnection = () => {
-    setStatuses(prev => ({ ...prev, bank: 'connected' }));
-    setIsUploaderOpen(false);
-    setVerdict(null);
-    setChecks([]);
-    setUploadedFileName('');
+  const handleClearFile = (fileType: 'pan' | 'aadhaar' | 'udyam' | 'bank') => {
+    if (fileType === 'pan') setPanFile(null);
+    else if (fileType === 'aadhaar') setAadhaarFile(null);
+    else if (fileType === 'udyam') setUdyamFile(null);
+    else if (fileType === 'bank') setBankFile(null);
   };
 
-  const closeUploader = () => {
-    setIsUploaderOpen(false);
-    setVerdict(null);
-    setChecks([]);
-    setUploadedFileName('');
-    setUploadError(null);
+  // Validate Step 1
+  const validateStep1 = () => {
+    setErrorMsg(null);
+    if (!businessName || !ownerName || !mobileNumber || !email || !panNumber || !yearsInBusiness || !loanAmount) {
+      setErrorMsg("Please fill in all required fields to proceed.");
+      return false;
+    }
+    const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+    if (!panRegex.test(panNumber.trim().toUpperCase())) {
+      setErrorMsg("Invalid PAN Format. Must match standard Indian PAN (e.g. ABCDE1234F).");
+      return false;
+    }
+    return true;
   };
 
-  const connectedCount = Object.values(statuses).filter(s => s === 'connected').length;
+  // Navigate Steps
+  const goToNextStep = () => {
+    if (currentStep === 1) {
+      if (!validateStep1()) return;
+    }
+    setDirection(1);
+    setCurrentStep(prev => prev + 1);
+  };
+
+  const goToPrevStep = () => {
+    setDirection(-1);
+    setCurrentStep(prev => prev - 1);
+  };
+
+  // Form submit handler
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+
+    // Must connect or upload bank statement
+    if (!connectAa && !bankFile) {
+      setErrorMsg("Please either connect your Bank Account via Account Aggregator or upload a Bank Statement PDF fallback to proceed.");
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const payload = {
+        business_name: businessName,
+        owner_name: ownerName,
+        mobile_number: mobileNumber,
+        email: email,
+        pan_number: panNumber.toUpperCase(),
+        gstin: gstin ? gstin.toUpperCase() : null,
+        udyam_number: udyamNumber ? udyamNumber : null,
+        business_type: businessType,
+        industry: industry,
+        years_in_business: parseInt(yearsInBusiness),
+        loan_amount_required: parseFloat(loanAmount),
+        loan_purpose: loanPurpose,
+        connect_gst: connectGst,
+        connect_aa: connectAa,
+        connect_upi: connectUpi,
+        connect_epfo: connectEpfo,
+        upload_pan: panFile,
+        upload_aadhaar: aadhaarFile,
+        upload_udyam: udyamFile,
+        upload_bank: bankFile
+      };
+
+      const result = await registerMSME(payload);
+      localStorage.setItem('active_business_id', result.business_id);
+      setRegisteredId(result.business_id);
+      setIsAnalyzing(true);
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to submit loan registration. Make sure the backend server is running.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const connectedCount = [connectGst, connectAa, connectUpi, connectEpfo].filter(Boolean).length;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background font-sans selection:bg-primary selection:text-white">
+    <div className="min-h-screen flex flex-col bg-background font-sans selection:bg-[#008269] selection:text-white">
       <nav className="sticky top-0 z-50 bg-white border-b border-border">
         <div className="max-w-[1440px] mx-auto px-6 lg:px-12 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
+            <div className="w-8 h-8 bg-[#008269] rounded flex items-center justify-center">
               <Activity className="w-5 h-5 text-white" />
             </div>
-            <span className="font-semibold text-lg text-primary tracking-tight">MSME360 CreditPulse</span>
+            <span className="font-semibold text-lg text-[#008269] tracking-tight">MSME360 CreditPulse</span>
           </div>
+          <button 
+            onClick={() => navigate('/login')} 
+            className="text-sm font-semibold text-text-secondary hover:text-[#008269] transition-colors"
+          >
+            Back to Sign In
+          </button>
         </div>
       </nav>
-      
-      <main className="flex-grow flex flex-col items-center">
+
+      <main className="flex-grow flex flex-col items-center bg-[#fafafa]">
         <AnimatePresence mode="wait">
           {!isAnalyzing ? (
-            <motion.div 
-              key="connection-view"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.3 }}
-              className="w-full flex-grow flex flex-col"
-            >
-              <div className="w-full max-w-[1440px] mx-auto px-6 lg:px-12 py-8 flex-grow">
-                <div className="mb-8 max-w-3xl">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-border rounded-full text-xs font-medium text-text-secondary mb-4 shadow-sm">
-                    <ShieldCheck className="w-4 h-4 text-success" />
-                    IDBI Institutional grade security
-                  </div>
-                  <h1 className="text-2xl md:text-3xl font-semibold text-text-primary mb-2">Connect Your Alternate Financial Data</h1>
-                  <p className="text-sm text-text-secondary">Securely connect bank statements, GST filins, EPFO, and utility sources. Alternate data allows AI to compute dynamic risk ratings for faster underwriting.</p>
+            <div className="w-full max-w-4xl px-4 md:px-8 py-10">
+              <div className="mb-8">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white border border-border rounded-full text-xs font-medium text-text-secondary mb-4 shadow-sm">
+                  <ShieldCheck className="w-4 h-4 text-success" />
+                  IDBI Consent-Driven Lending Framework
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {DATA_SOURCES.map((source) => (
-                    <IntegrationCard 
-                      key={source.id} 
-                      source={source} 
-                      status={statuses[source.id]} 
-                      onConnect={() => handleConnect(source.id)} 
-                    />
-                  ))}
-                </div>
+                <h1 className="text-2xl md:text-3xl font-bold text-text-primary mb-2">Consent-Based Loan Application</h1>
+                <p className="text-sm text-text-secondary leading-relaxed">
+                  Provide your basic details, connect your accounts via secure digital consent to fetch live data instantly, or upload fallbacks if digital services are unavailable.
+                </p>
               </div>
 
-              <div className="sticky bottom-0 bg-white border-t border-border mt-auto z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-                <div className="max-w-[1440px] mx-auto px-6 lg:px-12 h-20 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-text-primary">{connectedCount} Sources Connected</span>
-                      <span className="text-xs text-text-secondary">Connecting bank statements is required</span>
-                    </div>
-                  </div>
+              {/* Stepper Progress Bar */}
+              <div className="w-full bg-white border border-border rounded-card p-5 mb-8 shadow-sm flex items-center justify-between">
+                <div className="flex items-center w-full max-w-2xl mx-auto justify-between relative">
+                  {/* Background Progress bar line */}
+                  <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-border -translate-y-1/2 z-0" />
+                  <div 
+                    className="absolute top-1/2 left-0 h-0.5 bg-[#008269] -translate-y-1/2 z-0 transition-all duration-300"
+                    style={{ width: `${((currentStep - 1) / 2) * 100}%` }}
+                  />
+
+                  {/* Step 1 indicator */}
                   <button 
-                    onClick={() => setIsAnalyzing(true)}
-                    disabled={statuses.bank !== 'connected'}
-                    className="bg-primary hover:bg-primary-hover text-white px-8 py-2.5 rounded font-medium flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    type="button"
+                    onClick={() => { if (validateStep1()) { setDirection(-1); setCurrentStep(1); } }}
+                    className="relative z-10 flex flex-col items-center gap-1 cursor-pointer focus:outline-none"
                   >
-                    Start Financial Assessment <ArrowRight className="w-4 h-4" />
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 ${
+                      currentStep >= 1 ? 'bg-[#008269] text-white' : 'bg-background-muted text-text-secondary border border-border'
+                    }`}>
+                      1
+                    </div>
+                    <span className="text-[10px] font-bold text-text-primary">Business Profile</span>
+                  </button>
+
+                  {/* Step 2 indicator */}
+                  <button 
+                    type="button"
+                    onClick={() => { if (validateStep1()) { setDirection(currentStep > 2 ? -1 : 1); setCurrentStep(2); } }}
+                    className="relative z-10 flex flex-col items-center gap-1 cursor-pointer focus:outline-none"
+                  >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 ${
+                      currentStep >= 2 ? 'bg-[#008269] text-white' : 'bg-background-muted text-text-secondary border border-border'
+                    }`}>
+                      2
+                    </div>
+                    <span className="text-[10px] font-bold text-text-primary">Digital Consents</span>
+                  </button>
+
+                  {/* Step 3 indicator */}
+                  <button 
+                    type="button"
+                    onClick={() => { if (validateStep1()) { setDirection(1); setCurrentStep(3); } }}
+                    className="relative z-10 flex flex-col items-center gap-1 cursor-pointer focus:outline-none"
+                  >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all duration-300 ${
+                      currentStep >= 3 ? 'bg-[#008269] text-white' : 'bg-background-muted text-text-secondary border border-border'
+                    }`}>
+                      3
+                    </div>
+                    <span className="text-[10px] font-bold text-text-primary">Fallback Uploads</span>
                   </button>
                 </div>
               </div>
-            </motion.div>
+
+              {errorMsg && (
+                <div className="mb-6 p-4 bg-error/10 border border-error/20 text-error rounded-card text-sm font-semibold flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+
+              {/* Animated Switcher Area */}
+              <div className="relative overflow-hidden min-h-[400px]">
+                <AnimatePresence initial={false} custom={direction} mode="wait">
+                  {currentStep === 1 && (
+                    <motion.div
+                      key="step1"
+                      custom={direction}
+                      variants={slideVariants}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      className="bg-white border border-border rounded-card shadow-card p-6 md:p-8 space-y-6"
+                    >
+                      <div className="flex items-center gap-2 mb-2 border-b border-border pb-4">
+                        <div className="w-8 h-8 rounded bg-[#008269]/10 text-[#008269] flex items-center justify-center font-bold">1</div>
+                        <div>
+                          <h3 className="text-base font-bold text-text-primary">Basic Business Information</h3>
+                          <p className="text-xs text-text-secondary">Please enter your business registration & loan specifications.</p>
+                        </div>
+                       </div>
+
+                      {/* Paper Bank Statement OCR Mockup Widget */}
+                      <div className="bg-[#008269]/5 border border-[#008269]/20 rounded p-4 mb-4">
+                        <h4 className="text-xs font-bold text-[#008269] uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                          <BrainCircuit className="w-4 h-4" /> AI Document OCR Quick Start
+                        </h4>
+                        <p className="text-[11px] text-text-secondary leading-relaxed mb-3">
+                          Upload a photo/scan of a paper bank statement (PNG/JPEG). Gemini's vision pipeline will auto-extract details to minimize manual entry.
+                        </p>
+                        
+                        {isOcrLoading ? (
+                          <div className="flex flex-col items-center justify-center py-4 bg-white border border-border border-dashed rounded">
+                            <Loader2 className="w-6 h-6 text-[#008269] animate-spin mb-2" />
+                            <span className="text-[11px] font-semibold text-text-primary animate-pulse">{ocrProgressText}</span>
+                          </div>
+                        ) : ocrSuccess ? (
+                          <div className="p-3 bg-success/15 border border-success/30 rounded text-success text-[11px] font-semibold flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <Check className="w-4 h-4" />
+                              <span>{ocrSuccess}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setOcrSuccess(null)}
+                              className="text-[10px] text-text-secondary hover:underline cursor-pointer"
+                            >
+                              Reset
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="border border-border border-dashed rounded p-4 flex flex-col items-center justify-center relative hover:bg-white transition-all bg-white min-h-[90px]">
+                            <Upload className="w-5 h-5 text-text-secondary mb-2" />
+                            <p className="text-[11px] font-semibold text-text-primary">Upload Paper Statement Photo</p>
+                            <p className="text-[9px] text-text-secondary mt-0.5">JPEG or PNG up to 5MB</p>
+                            <input 
+                              type="file" 
+                              accept="image/*"
+                              onChange={handleOcrFileSelect}
+                              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                          <label className="block text-xs font-bold text-text-primary uppercase tracking-wider mb-2">Business Name *</label>
+                          <input 
+                            type="text" 
+                            placeholder="e.g. Surat Silk Sarees"
+                            value={businessName}
+                            onChange={(e) => setBusinessName(e.target.value)}
+                            className="w-full px-4 py-2.5 border border-border bg-white rounded text-xs focus:outline-none focus:border-[#008269]"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-text-primary uppercase tracking-wider mb-2">Owner Name *</label>
+                          <input 
+                            type="text" 
+                            placeholder="e.g. Ayesha Mehta"
+                            value={ownerName}
+                            onChange={(e) => setOwnerName(e.target.value)}
+                            className="w-full px-4 py-2.5 border border-border bg-white rounded text-xs focus:outline-none focus:border-[#008269]"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-text-primary uppercase tracking-wider mb-2">Mobile Number *</label>
+                          <input 
+                            type="tel" 
+                            placeholder="e.g. 9876543210"
+                            value={mobileNumber}
+                            onChange={(e) => setMobileNumber(e.target.value)}
+                            className="w-full px-4 py-2.5 border border-border bg-white rounded text-xs focus:outline-none focus:border-[#008269]"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-text-primary uppercase tracking-wider mb-2">Email Address *</label>
+                          <input 
+                            type="email" 
+                            placeholder="e.g. contact@suratsilks.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="w-full px-4 py-2.5 border border-border bg-white rounded text-xs focus:outline-none focus:border-[#008269]"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-text-primary uppercase tracking-wider mb-2">PAN Number (Business/Proprietor) *</label>
+                          <input 
+                            type="text" 
+                            placeholder="e.g. ABCDE1234F"
+                            value={panNumber}
+                            onChange={(e) => setPanNumber(e.target.value.toUpperCase())}
+                            className="w-full px-4 py-2.5 border border-border bg-white rounded text-xs focus:outline-none focus:border-[#008269] uppercase font-semibold"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-text-primary uppercase tracking-wider mb-2">GSTIN (GST Identification Number)</label>
+                          <input 
+                            type="text" 
+                            placeholder="Optional (e.g. 27ABCDE1234F1Z5)"
+                            value={gstin}
+                            onChange={(e) => setGstin(e.target.value.toUpperCase())}
+                            className="w-full px-4 py-2.5 border border-border bg-white rounded text-xs focus:outline-none focus:border-[#008269] uppercase"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-text-primary uppercase tracking-wider mb-2">Udyam Registration Number</label>
+                          <input 
+                            type="text" 
+                            placeholder="Optional (e.g. UDYAM-MH-01-1234567)"
+                            value={udyamNumber}
+                            onChange={(e) => setUdyamNumber(e.target.value)}
+                            className="w-full px-4 py-2.5 border border-border bg-white rounded text-xs focus:outline-none focus:border-[#008269]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-text-primary uppercase tracking-wider mb-2">Business Constitution *</label>
+                          <select 
+                            value={businessType}
+                            onChange={(e) => setBusinessType(e.target.value)}
+                            className="w-full px-4 py-2.5 border border-border bg-white rounded text-xs focus:outline-none focus:border-[#008269] text-text-primary font-medium"
+                          >
+                            <option value="Sole Proprietor">Sole Proprietor</option>
+                            <option value="Partnership">Partnership</option>
+                            <option value="Pvt Ltd">Pvt Ltd Company</option>
+                            <option value="LLP">Limited Liability Partnership</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-text-primary uppercase tracking-wider mb-2">Industry Sector *</label>
+                          <select 
+                            value={industry}
+                            onChange={(e) => setIndustry(e.target.value)}
+                            className="w-full px-4 py-2.5 border border-border bg-white rounded text-xs focus:outline-none focus:border-[#008269] text-text-primary font-medium"
+                          >
+                            <option value="Manufacturing">Manufacturing</option>
+                            <option value="Retail">Retail Trade</option>
+                            <option value="Wholesale">Wholesale Trade</option>
+                            <option value="Services">Services Sector</option>
+                            <option value="Logistics">Logistics & Transport</option>
+                            <option value="Others">Others</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-text-primary uppercase tracking-wider mb-2">Years in Business *</label>
+                          <input 
+                            type="number" 
+                            min="1"
+                            placeholder="e.g. 5"
+                            value={yearsInBusiness}
+                            onChange={(e) => setYearsInBusiness(e.target.value)}
+                            className="w-full px-4 py-2.5 border border-border bg-white rounded text-xs focus:outline-none focus:border-[#008269]"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-text-primary uppercase tracking-wider mb-2">Required Loan Amount (INR) *</label>
+                          <input 
+                            type="number" 
+                            placeholder="e.g. 1500000"
+                            value={loanAmount}
+                            onChange={(e) => setLoanAmount(e.target.value)}
+                            className="w-full px-4 py-2.5 border border-border bg-white rounded text-xs focus:outline-none focus:border-[#008269] font-semibold"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-text-primary uppercase tracking-wider mb-2">Loan Purpose *</label>
+                          <select 
+                            value={loanPurpose}
+                            onChange={(e) => setLoanPurpose(e.target.value)}
+                            className="w-full px-4 py-2.5 border border-border bg-white rounded text-xs focus:outline-none focus:border-[#008269] text-text-primary font-medium"
+                          >
+                            <option value="Working Capital">Working Capital</option>
+                            <option value="Machinery Acquisition">Machinery / Equipment Purchase</option>
+                            <option value="Business Expansion">Business Expansion</option>
+                            <option value="Inventory Stocking">Inventory Purchase</option>
+                            <option value="Debt Refinancing">Debt Consolidation</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end pt-4 border-t border-border mt-6">
+                        <button 
+                          type="button" 
+                          onClick={goToNextStep}
+                          className="bg-[#008269] hover:bg-[#005443] text-white px-6 py-2.5 rounded font-bold flex items-center gap-2 transition-colors cursor-pointer"
+                        >
+                          Continue to Consents
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {currentStep === 2 && (
+                    <motion.div
+                      key="step2"
+                      custom={direction}
+                      variants={slideVariants}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      className="bg-white border border-border rounded-card shadow-card p-6 md:p-8 space-y-6"
+                    >
+                      <div className="flex items-center gap-2 mb-2 border-b border-border pb-4">
+                        <div className="w-8 h-8 rounded bg-[#008269]/10 text-[#008269] flex items-center justify-center font-bold">2</div>
+                        <div>
+                          <h3 className="text-base font-bold text-text-primary">Digital Consent Pipelines</h3>
+                          <p className="text-xs text-text-secondary">Real-time alternate data connection pipelines.</p>
+                        </div>
+                      </div>
+
+                      {/* Sub-step breadcrumbs flow */}
+                      <div className="flex justify-between items-center text-[10px] text-text-secondary bg-[#008269]/5 border border-[#008269]/15 p-3 rounded font-semibold">
+                        <span>Consent Progress:</span>
+                        <div className="flex items-center gap-1.5 uppercase tracking-wider">
+                          <span className={consentSubStep >= 1 ? "text-[#008269] font-bold" : ""}>1. GST</span>
+                          <span>➔</span>
+                          <span className={consentSubStep >= 2 ? "text-[#008269] font-bold" : ""}>2. Bank (AA)</span>
+                          <span>➔</span>
+                          <span className={consentSubStep >= 3 ? "text-[#008269] font-bold" : ""}>3. UPI</span>
+                          <span>➔</span>
+                          <span className={consentSubStep >= 4 ? "text-[#008269] font-bold" : ""}>4. EPFO</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        
+                        {/* GST Returns Pipeline */}
+                        {consentSubStep >= 1 && (
+                          <motion.div 
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className={`border rounded p-4 flex flex-col justify-between transition-all bg-white shadow-xs ${
+                              consentSubStep === 1 ? 'border-[#008269] ring-2 ring-[#008269]/10' : 'border-border/60 bg-[#fafafa]/80'
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`p-2 rounded ${consentSubStep === 1 ? 'bg-[#008269]/10 text-[#008269]' : 'bg-success/10 text-success'}`}>
+                                <FileText className="w-5 h-5" />
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="text-xs font-bold text-text-primary">GST Returns Pipeline</h4>
+                                <p className="text-[10px] text-text-secondary leading-relaxed mt-0.5">Fetches turnover, tax filing timelines and compliance history from GSTN.</p>
+                              </div>
+                            </div>
+                            <div className="mt-4 border-t border-border/40 pt-3 flex justify-between items-center">
+                              <span className="text-[10px] font-semibold text-text-secondary">
+                                {connectingGst ? (
+                                  <span className="flex items-center gap-1.5 text-primary"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Connecting to GSTN registry...</span>
+                                ) : connectGst ? (
+                                  <span className="flex items-center gap-1.5 text-success font-bold"><Check className="w-3.5 h-3.5" /> GSTN Connected successfully</span>
+                                ) : (
+                                  "Status: Disconnected"
+                                )}
+                              </span>
+                            </div>
+                          </motion.div>
+                        )}
+
+                        {/* Account Aggregator (Bank Data) */}
+                        {consentSubStep >= 2 && (
+                          <motion.div 
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className={`border rounded p-4 flex flex-col justify-between transition-all bg-white shadow-xs ${
+                              consentSubStep === 2 ? 'border-[#008269] ring-2 ring-[#008269]/10' : 'border-border/60 bg-[#fafafa]/80'
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`p-2 rounded ${consentSubStep === 2 ? 'bg-[#008269]/10 text-[#008269]' : 'bg-success/10 text-success'}`}>
+                                <Landmark className="w-5 h-5" />
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="text-xs font-bold text-text-primary">Account Aggregator (Bank Statement)</h4>
+                                <p className="text-[10px] text-text-secondary leading-relaxed mt-0.5">Secure, consent-driven bank statements, month-end balances, and EMIs.</p>
+                              </div>
+                            </div>
+                            <div className="mt-4 border-t border-border/40 pt-3 flex justify-between items-center">
+                              <span className="text-[10px] font-semibold text-text-secondary">
+                                {connectingAa ? (
+                                  <span className="flex items-center gap-1.5 text-primary"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Fetching bank records via secure consent...</span>
+                                ) : connectAa ? (
+                                  <span className="flex items-center gap-1.5 text-success font-bold"><Check className="w-3.5 h-3.5" /> Account Aggregator Linked successfully</span>
+                                ) : (
+                                  "Status: Disconnected"
+                                )}
+                              </span>
+                            </div>
+                          </motion.div>
+                        )}
+
+                        {/* UPI Transactions Velocity */}
+                        {consentSubStep >= 3 && (
+                          <motion.div 
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className={`border rounded p-4 flex flex-col justify-between transition-all bg-white shadow-xs ${
+                              consentSubStep === 3 ? 'border-[#008269] ring-2 ring-[#008269]/10' : 'border-border/60 bg-[#fafafa]/80'
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`p-2 rounded ${consentSubStep === 3 ? 'bg-[#008269]/10 text-[#008269]' : 'bg-success/10 text-success'}`}>
+                                <Smartphone className="w-5 h-5" />
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="text-xs font-bold text-text-primary">UPI Transactions Velocity</h4>
+                                <p className="text-[10px] text-text-secondary leading-relaxed mt-0.5">QR payments volume, merchant transaction frequency, and digital collection ratios.</p>
+                              </div>
+                            </div>
+                            <div className="mt-4 border-t border-border/40 pt-3 flex justify-between items-center">
+                              <span className="text-[10px] font-semibold text-text-secondary">
+                                {connectingUpi ? (
+                                  <span className="flex items-center gap-1.5 text-primary"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Calculating transaction velocity...</span>
+                                ) : connectUpi ? (
+                                  <span className="flex items-center gap-1.5 text-success font-bold"><Check className="w-3.5 h-3.5" /> UPI Collection terminal active</span>
+                                ) : (
+                                  "Status: Disconnected"
+                                )}
+                              </span>
+                            </div>
+                          </motion.div>
+                        )}
+
+                        {/* EPFO Payroll Deposits */}
+                        {consentSubStep >= 4 && (
+                          <motion.div 
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className={`border rounded p-4 flex flex-col justify-between transition-all bg-white shadow-xs ${
+                              consentSubStep === 4 ? 'border-[#008269] ring-2 ring-[#008269]/10' : 'border-border/60 bg-[#fafafa]/80'
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`p-2 rounded ${consentSubStep === 4 ? 'bg-[#008269]/10 text-[#008269]' : 'bg-success/10 text-success'}`}>
+                                <Briefcase className="w-5 h-5" />
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="text-xs font-bold text-text-primary">EPFO Payroll Deposits</h4>
+                                <p className="text-[10px] text-text-secondary leading-relaxed mt-0.5">Fetches monthly employee count, payroll deposits, and company vintage stability.</p>
+                              </div>
+                            </div>
+                            <div className="mt-4 border-t border-border/40 pt-3 flex justify-between items-center">
+                              <span className="text-[10px] font-semibold text-text-secondary">
+                                {connectingEpfo ? (
+                                  <span className="flex items-center gap-1.5 text-primary"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Verifying EPFO payroll vintage...</span>
+                                ) : connectEpfo ? (
+                                  <span className="flex items-center gap-1.5 text-success font-bold"><Check className="w-3.5 h-3.5" /> EPFO Payroll synced successfully</span>
+                                ) : (
+                                  "Status: Disconnected"
+                                )}
+                              </span>
+                            </div>
+                          </motion.div>
+                        )}
+
+                      </div>
+
+                      <div className="flex justify-between pt-4 border-t border-border mt-6">
+                        <button 
+                          type="button" 
+                          onClick={handlePrevConsentSubStep}
+                          className="bg-white border border-border hover:bg-background-muted text-text-primary px-6 py-2.5 rounded font-bold flex items-center gap-2 transition-colors cursor-pointer"
+                        >
+                          <ArrowLeft className="w-4 h-4" />
+                          Back
+                        </button>
+                        
+                        <button 
+                          type="button" 
+                          onClick={handleNextConsentSubStep}
+                          disabled={
+                            (consentSubStep === 1 && (connectingGst || !connectGst)) ||
+                            (consentSubStep === 2 && (connectingAa || !connectAa)) ||
+                            (consentSubStep === 3 && (connectingUpi || !connectUpi)) ||
+                            (consentSubStep === 4 && (connectingEpfo || !connectEpfo))
+                          }
+                          className="bg-[#008269] hover:bg-[#005443] disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded font-bold flex items-center gap-2 transition-colors cursor-pointer"
+                        >
+                          {consentSubStep === 4 ? "Continue to Uploads" : "Connect Next Pipeline"}
+                          <ArrowRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {currentStep === 3 && (
+                    <motion.div
+                      key="step3"
+                      custom={direction}
+                      variants={slideVariants}
+                      initial="enter"
+                      animate="center"
+                      exit="exit"
+                      className="bg-white border border-border rounded-card shadow-card p-6 md:p-8 space-y-6"
+                    >
+                      <div className="flex items-center gap-2 mb-2 border-b border-border pb-4">
+                        <div className="w-8 h-8 rounded bg-[#008269]/10 text-[#008269] flex items-center justify-center font-bold">3</div>
+                        <div>
+                          <h3 className="text-base font-bold text-text-primary">Optional Uploads (Fallback)</h3>
+                          <p className="text-xs text-text-secondary">Only upload if digital data connections above are unavailable.</p>
+                        </div>
+                      </div>
+
+                      <p className="text-xs text-text-secondary leading-relaxed">
+                        If you could not connect your accounts via consent pipelines in Step 2, please upload the fallback physical documents below to complete underwriting validation.
+                      </p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* PAN Card upload */}
+                        <div className="border border-border border-dashed rounded p-4 flex flex-col items-center justify-center relative hover:bg-background-muted/20 transition-all bg-white min-h-[120px]">
+                          {panFile ? (
+                            <div className="text-center w-full">
+                              <CheckCircle2 className="w-8 h-8 text-success mx-auto mb-2" />
+                              <p className="text-xs font-semibold text-text-primary truncate px-2">{panFile}</p>
+                              <button 
+                                type="button" 
+                                onClick={() => handleClearFile('pan')}
+                                className="mt-2 text-[10px] text-error hover:underline cursor-pointer"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <Upload className="w-6 h-6 text-text-secondary mb-2" />
+                              <p className="text-[11px] font-semibold text-text-primary">Upload PAN Card</p>
+                              <p className="text-[9px] text-text-secondary mt-0.5">PDF, PNG or JPG up to 5MB</p>
+                              <input 
+                                type="file" 
+                                accept=".pdf,image/*"
+                                onChange={(e) => handleMockUpload(e, 'pan')}
+                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                              />
+                            </>
+                          )}
+                        </div>
+
+                        {/* Aadhaar upload */}
+                        <div className="border border-border border-dashed rounded p-4 flex flex-col items-center justify-center relative hover:bg-background-muted/20 transition-all bg-white min-h-[120px]">
+                          {aadhaarFile ? (
+                            <div className="text-center w-full">
+                              <CheckCircle2 className="w-8 h-8 text-success mx-auto mb-2" />
+                              <p className="text-xs font-semibold text-text-primary truncate px-2">{aadhaarFile}</p>
+                              <button 
+                                type="button" 
+                                onClick={() => handleClearFile('aadhaar')}
+                                className="mt-2 text-[10px] text-error hover:underline cursor-pointer"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <Upload className="w-6 h-6 text-text-secondary mb-2" />
+                              <p className="text-[11px] font-semibold text-text-primary">Upload Aadhaar Card</p>
+                              <p className="text-[9px] text-text-secondary mt-0.5">PDF or image format</p>
+                              <input 
+                                type="file" 
+                                accept=".pdf,image/*"
+                                onChange={(e) => handleMockUpload(e, 'aadhaar')}
+                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                              />
+                            </>
+                          )}
+                        </div>
+
+                        {/* Udyam Certificate upload */}
+                        <div className="border border-border border-dashed rounded p-4 flex flex-col items-center justify-center relative hover:bg-background-muted/20 transition-all bg-white min-h-[120px]">
+                          {udyamFile ? (
+                            <div className="text-center w-full">
+                              <CheckCircle2 className="w-8 h-8 text-success mx-auto mb-2" />
+                              <p className="text-xs font-semibold text-text-primary truncate px-2">{udyamFile}</p>
+                              <button 
+                                type="button" 
+                                onClick={() => handleClearFile('udyam')}
+                                className="mt-2 text-[10px] text-error hover:underline cursor-pointer"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <Upload className="w-6 h-6 text-text-secondary mb-2" />
+                              <p className="text-[11px] font-semibold text-text-primary">Udyam Registration Certificate</p>
+                              <p className="text-[9px] text-text-secondary mt-0.5">MSME verification document</p>
+                              <input 
+                                type="file" 
+                                accept=".pdf,image/*"
+                                onChange={(e) => handleMockUpload(e, 'udyam')}
+                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                              />
+                            </>
+                          )}
+                        </div>
+
+                        {/* Bank Statement upload */}
+                        <div className="border border-border border-dashed rounded p-4 flex flex-col items-center justify-center relative hover:bg-background-muted/20 transition-all bg-white min-h-[120px]">
+                          {bankFile ? (
+                            <div className="text-center w-full">
+                              <CheckCircle2 className="w-8 h-8 text-success mx-auto mb-2" />
+                              <p className="text-xs font-semibold text-text-primary truncate px-2">{bankFile}</p>
+                              <button 
+                                type="button" 
+                                onClick={() => handleClearFile('bank')}
+                                className="mt-2 text-[10px] text-error hover:underline cursor-pointer"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <Upload className="w-6 h-6 text-text-secondary mb-2" />
+                              <p className="text-[11px] font-semibold text-text-primary">Bank Statements (Fallback)</p>
+                              <p className="text-[9px] text-text-secondary mt-0.5">PDF or CSV from last 6 months</p>
+                              <input 
+                                type="file" 
+                                accept=".pdf,.csv"
+                                onChange={(e) => handleMockUpload(e, 'bank')}
+                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                              />
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="bg-[#fafafa] border border-border p-5 rounded flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
+                        <div className="text-center sm:text-left">
+                          <span className="text-xs font-bold text-text-primary block">{connectedCount} Source(s) Connected</span>
+                          <span className="text-[10px] text-text-secondary mt-0.5 block">
+                            {!connectAa && !bankFile 
+                              ? "⚠ Please connect your bank account (Step 2) or upload a Bank Statement PDF above" 
+                              : "Verified: Required financial data source is available."}
+                          </span>
+                        </div>
+                        <div className="flex gap-3 w-full sm:w-auto">
+                          <button 
+                            type="button" 
+                            onClick={goToPrevStep}
+                            className="bg-white border border-border hover:bg-background-muted text-text-primary px-5 py-2.5 rounded font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer flex-1 sm:flex-initial"
+                          >
+                            <ArrowLeft className="w-4 h-4" />
+                            Back
+                          </button>
+                          <button 
+                            onClick={handleSubmit}
+                            disabled={submitting || (!connectAa && !bankFile)}
+                            className="bg-[#008269] hover:bg-[#005443] text-white px-6 py-2.5 rounded font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex-1 sm:flex-initial"
+                          >
+                            {submitting ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Analyzing...
+                              </>
+                            ) : (
+                              <>
+                                Analyze My Business
+                                <ArrowRight className="w-4 h-4" />
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
           ) : (
             <motion.div 
-              key="analysis-view"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3 }}
-              className="w-full flex-grow flex items-center justify-center bg-background"
+              key="loader-view"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="w-full flex-grow flex items-center justify-center py-10"
             >
-              <AnalysisWorkflow />
+              <AnalysisWorkflow businessId={registeredId} />
             </motion.div>
           )}
         </AnimatePresence>
       </main>
-
-      {/* Bank statement document compliance intake modal */}
-      {isUploaderOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-          <div className="relative w-full max-w-2xl rounded-card border border-border bg-white shadow-2xl p-6 flex flex-col max-h-[90vh]">
-            <div className="flex items-center justify-between pb-4 border-b border-border mb-4">
-              <div>
-                <h3 className="text-lg font-bold text-text-primary">Connect Bank Statements</h3>
-                <p className="text-xs text-text-secondary">Verify statement structure, transaction coverage, and balancing compliance</p>
-              </div>
-              <button
-                onClick={closeUploader}
-                aria-label="Close bank statement uploader"
-                className="rounded-lg p-1 text-text-secondary hover:bg-background-muted hover:text-text-primary transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" aria-hidden="true" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto space-y-6">
-              
-              {/* Presets Zone */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-bold text-text-secondary uppercase tracking-wider">Demo Scenario Templates</h4>
-                <div className="grid grid-cols-3 gap-3">
-                  <button
-                    onClick={() => handlePresetSelect('green')}
-                    className="p-3 border border-border hover:border-success bg-white hover:bg-success/5 rounded text-left transition-all cursor-pointer"
-                  >
-                    <div className="w-2 h-2 rounded-full bg-success mb-2" />
-                    <p className="text-xs font-bold text-text-primary">Surat Silk Sarees</p>
-                    <p className="text-[10px] text-text-secondary">Green verdict (Standard pass)</p>
-                  </button>
-                  <button
-                    onClick={() => handlePresetSelect('yellow')}
-                    className="p-3 border border-border hover:border-warning bg-white hover:bg-warning/5 rounded text-left transition-all cursor-pointer"
-                  >
-                    <div className="w-2 h-2 rounded-full bg-warning mb-2" />
-                    <p className="text-xs font-bold text-text-primary">Royal Hyderabadi</p>
-                    <p className="text-[10px] text-text-secondary">Yellow verdict (Low credits warning)</p>
-                  </button>
-                  <button
-                    onClick={() => handlePresetSelect('red')}
-                    className="p-3 border border-border hover:border-error bg-white hover:bg-error/5 rounded text-left transition-all cursor-pointer"
-                  >
-                    <div className="w-2 h-2 rounded-full bg-error mb-2" />
-                    <p className="text-xs font-bold text-text-primary">Chennai Metals</p>
-                    <p className="text-[10px] text-text-secondary">Red verdict (Reconciliation fails)</p>
-                  </button>
-                </div>
-              </div>
-
-              {/* Upload Drop Zone */}
-              <div className="border-2 border-dashed border-border rounded p-6 flex flex-col items-center justify-center bg-background-muted/20 hover:bg-background-muted/40 transition-colors relative">
-                <Upload className="w-8 h-8 text-primary mb-2" />
-                <p className="text-xs font-semibold text-text-primary">Drag & Drop statement CSV or click to select</p>
-                <p className="text-[10px] text-text-secondary mt-1">Accepts standard banking format CSVs (Date, Credit, Debit, Balance)</p>
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={handleCustomFileInput}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                />
-              </div>
-
-              {uploadedFileName && (
-                <div className="p-3 rounded bg-background-muted border border-border flex items-center justify-between text-xs">
-                  <span className="font-semibold text-text-primary">{uploadedFileName}</span>
-                  {isParsing && <Loader2 className="w-4 h-4 text-primary animate-spin" aria-label="Validating statement" />}
-                </div>
-              )}
-
-              {uploadError && (
-                <div role="alert" className="p-4 bg-error/10 border border-error/20 rounded text-error flex items-start gap-2.5">
-                  <XCircle className="w-5 h-5 shrink-0 mt-0.5" aria-hidden="true" />
-                  <div>
-                    <h5 className="font-bold text-sm">Validation request failed</h5>
-                    <p className="text-xs text-error/80 mt-0.5">{uploadError}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Parsing Compliance Checks Output */}
-              {verdict && (
-                <div className="space-y-4 pt-4 border-t border-border">
-                  
-                  {/* Verdict Banner */}
-                  {verdict === 'GREEN' && (
-                    <div className="p-4 bg-success/10 border border-success/20 rounded text-success flex items-start gap-2.5">
-                      <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
-                      <div>
-                        <h5 className="font-bold text-sm">Readiness Verdict: Compliant</h5>
-                        <p className="text-xs text-success/80 mt-0.5">All policy rules met. The statement data is fully scorable.</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {verdict === 'YELLOW' && (
-                    <div className="p-4 bg-warning/10 border border-warning/20 rounded text-warning flex items-start gap-2.5">
-                      <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                      <div>
-                        <h5 className="font-bold text-sm">Readiness Verdict: Scorable with warning</h5>
-                        <p className="text-xs text-warning/80 mt-0.5">Minor anomalies detected. Scorable, but review checks below.</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {verdict === 'RED' && (
-                    <div className="p-4 bg-error/10 border border-error/20 rounded text-error flex items-start gap-2.5">
-                      <XCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                      <div>
-                        <h5 className="font-bold text-sm">Readiness Verdict: Non-Compliant</h5>
-                        <p className="text-xs text-error/80 mt-0.5">Critical compliance rules failed. Scoring is currently blocked.</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Checklist */}
-                  <div className="space-y-2">
-                    <h5 className="text-xs font-bold text-text-secondary uppercase">Compliance Checks</h5>
-                    <div className="divide-y divide-border border border-border rounded overflow-hidden">
-                      {checks.map((c, idx) => (
-                        <div key={idx} className="p-3 flex items-start justify-between gap-3 text-xs bg-white">
-                          <div>
-                            <p className="font-semibold text-text-primary">{c.name}</p>
-                            <p className="text-text-secondary text-[11px] mt-0.5">{c.desc}</p>
-                            {c.message && (
-                              <p className={`mt-1 font-medium ${c.status === 'fail' ? 'text-error' : c.status === 'warn' ? 'text-warning' : 'text-success'}`}>
-                                {c.message}
-                              </p>
-                            )}
-                          </div>
-                          <div>
-                            {c.status === 'pass' && <CheckCircle2 className="w-4.5 h-4.5 text-success" />}
-                            {c.status === 'warn' && <AlertCircle className="w-4.5 h-4.5 text-warning" />}
-                            {c.status === 'fail' && <XCircle className="w-4.5 h-4.5 text-error" />}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                </div>
-              )}
-
-            </div>
-
-            {/* Modal Footer */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-border mt-auto">
-              <button
-                onClick={closeUploader}
-                className="px-4 py-2 border border-border hover:bg-background-muted text-text-primary text-sm font-semibold rounded cursor-pointer transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                disabled={verdict === 'RED' || !verdict}
-                onClick={confirmBankConnection}
-                className="px-4 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded cursor-pointer transition-colors"
-              >
-                Confirm Connection
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

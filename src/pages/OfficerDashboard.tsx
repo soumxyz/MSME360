@@ -243,6 +243,7 @@ export default function OfficerDashboard() {
         />
       </div>
 
+
       {/* Analytics Section */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
         <div className="lg:col-span-1">
@@ -402,9 +403,10 @@ export default function OfficerDashboard() {
                       <Link
                         to={`/officer/applications/${row.business_id}`}
                         aria-label={`Review ${row.name}`}
-                        className="inline-flex items-center justify-center w-8 h-8 rounded border border-border hover:bg-background-muted text-text-secondary transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#008269]/10 hover:bg-[#008269] text-[#008269] hover:text-white text-xs font-bold border border-[#008269]/20 transition-all cursor-pointer shadow-xs"
                       >
-                        <Eye className="w-4 h-4" aria-hidden="true" />
+                        <BrainCircuit className="w-3.5 h-3.5" />
+                        Underwrite
                       </Link>
                     </td>
                   </tr>
@@ -448,26 +450,7 @@ export default function OfficerDashboard() {
 
       </div>
 
-      {/* Hackathon Methodology Guide Banner */}
-      <motion.div 
-        variants={itemVariants}
-        className="mt-6 p-6 border border-primary/20 bg-primary/5 rounded-card flex flex-col md:flex-row md:items-center md:justify-between gap-6"
-      >
-        <div className="max-w-4xl">
-          <h4 className="text-sm font-bold text-primary flex items-center gap-1.5 uppercase tracking-wider mb-2">
-            <BrainCircuit className="w-4 h-4" /> IDBI Hackathon Evaluation Guide: How AI Scoring Works
-          </h4>
-          <p className="text-xs text-text-secondary leading-relaxed">
-            Every client health score is computed dynamically by our <strong className="text-text-primary">Agent 2 ML Engine</strong> using an XGBoost model fit on continuous balance sheets and alternate cash flow metrics. Inputs are parsed by the <strong className="text-text-primary">Agent 1 Compliance Engine</strong> from raw bank statement uploads and cross-verified against GST filing timelines. Local attributions are calculated using SHAP Tree Explainers and fully explained in natural language via the <strong className="text-text-primary">Agent 3 Generative Credit Copilot</strong>.
-          </p>
-        </div>
-        <Link
-          to="/officer/applications"
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-primary/30 text-primary text-xs font-semibold rounded hover:bg-primary/5 transition-all cursor-pointer whitespace-nowrap self-start md:self-center shadow-xs"
-        >
-          Open the Live Queue <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
-        </Link>
-      </motion.div>
+
 
     </motion.div>
   );

@@ -25,6 +25,7 @@ import BusinessDirectory from './pages/BusinessDirectory';
 import RiskQueue from './pages/RiskQueue';
 import HealthCards from './pages/HealthCards';
 import OfficerReports from './pages/OfficerReports';
+import Settings from './pages/Settings';
 
 function App() {
   return (
@@ -45,9 +46,7 @@ function App() {
           <Route path="applications" element={<Applications />} />
           <Route path="applications/:id" element={<ApplicationDetails />} />
           <Route path="reports" element={<ReportView />} />
-          <Route path="settings" element={
-            <div className="p-8 text-center text-text-secondary">Settings page placeholder</div>
-          } />
+          <Route path="settings" element={<Settings />} />
         </Route>
 
         {/* Officer Routes (Bank Back-Office view) */}
@@ -60,9 +59,7 @@ function App() {
           <Route path="risk-queue" element={<RiskQueue />} />
           <Route path="health-cards" element={<HealthCards />} />
           <Route path="reports" element={<OfficerReports />} />
-          <Route path="settings" element={
-            <div className="p-8 text-center text-text-secondary">Officer Settings placeholder</div>
-          } />
+          <Route path="settings" element={<Settings />} />
         </Route>
 
         {/* Fallback */}

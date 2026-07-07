@@ -28,7 +28,7 @@ import { PageSkeleton } from '../components/Skeleton';
 import { BRAND, AXIS_TICK_SM } from '../lib/palette';
 import type { BusinessDetail } from '../lib/api/types';
 
-const ReportHeader = () => (
+const ReportHeader = ({ businessId }: { businessId: string }) => (
   <div className="flex items-center justify-between border-b-2 border-primary pb-6 mb-8">
     <div className="flex items-center gap-3">
       <div className="w-10 h-10 bg-primary rounded flex items-center justify-center">
@@ -41,7 +41,7 @@ const ReportHeader = () => (
     </div>
     <div className="text-right">
       <h2 className="text-lg font-semibold text-text-primary">Financial Health Report</h2>
-      <p className="text-xs text-text-secondary">Ref No: IDBI/FHR/{DEMO_BUSINESS_ID}</p>
+      <p className="text-xs text-text-secondary">Ref No: IDBI/FHR/{businessId}</p>
       <p className="text-xs text-text-secondary">Date: {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
     </div>
   </div>
@@ -264,7 +264,7 @@ export default function ReportView() {
       {/* A4 Report Container */}
       <main className="max-w-[800px] mx-auto bg-white shadow-lg border border-border">
         <div className="p-12 md:p-16">
-          <ReportHeader />
+          <ReportHeader businessId={data.business_id} />
           <BusinessInfo data={data} />
           <DataSourcesSection />
           <ScoresSection data={data} />

@@ -11,7 +11,8 @@ import {
   Building2,
   Database,
   BrainCircuit,
-  FileCheck
+  FileCheck,
+  FileText
 } from 'lucide-react';
 
 const FadeIn = ({ children, delay = 0 }: { children: React.ReactNode, delay?: number }) => (
@@ -80,27 +81,18 @@ const Hero = () => (
 );
 
 const Features = () => {
-  const features = [
-    {
-      icon: <BrainCircuit className="w-6 h-6 text-primary" />,
-      title: "AI Financial Analysis",
-      description: "Deep learning algorithms process historical financial statements to identify working capital cycles and cash flow patterns."
-    },
-    {
-      icon: <LinkIcon className="w-6 h-6 text-primary" />,
-      title: "Alternate Data Integration",
-      description: "Securely connect GST returns, banking statements, and ERP data for a holistic view of business performance."
-    },
-    {
-      icon: <Activity className="w-6 h-6 text-primary" />,
-      title: "Financial Health Score",
-      description: "Receive a standardized, institutional-grade credit health score based on real-time operational data."
-    },
-    {
-      icon: <Landmark className="w-6 h-6 text-primary" />,
-      title: "Smart Loan Recommendation",
-      description: "Automated mapping of your financial profile to suitable IDBI Bank credit facilities with pre-qualification indicators."
-    }
+  // Map icons manually to avoid missing imports
+  const activeFeatures = [
+    { icon: <BrainCircuit className="w-6 h-6 text-[#008269]" />, title: "AI Financial Health Assessment", description: "Analyzes GST, UPI, Account Aggregator, and EPFO pipelines for alternate credit metrics." },
+    { icon: <Building2 className="w-6 h-6 text-[#008269]" />, title: "AI MSME Due Diligence", description: "Verifies entity registrations, tax statuses, and highlights transaction risk alerts." },
+    { icon: <Building2 className="w-6 h-6 text-[#008269]" />, title: "KYC & KYB Verification", description: "Seamless, real-time registry checks for PAN, GSTIN, Udyam MSME, and Aadhaar OTP." },
+    { icon: <BrainCircuit className="w-6 h-6 text-[#008269]" />, title: "Fraud & Risk Detection", description: "Scans bank statement ledgers for circular flows, balance spikes, and repayment delay risks." },
+    { icon: <Activity className="w-6 h-6 text-[#008269]" />, title: "RBI Policy Compliance", description: "Validates internal lending guidelines, document checklists, and MSME sector eligibility." },
+    { icon: <FileCheck className="w-6 h-6 text-[#008269]" />, title: "AI Loan Origination", description: "Automates the pre-screening flow from intake checks to underwriter decision approvals." },
+    { icon: <BrainCircuit className="w-6 h-6 text-[#008269]" />, title: "AI Credit Copilot", description: "Interactive grounded assistant to explain ratings and suggest underwriting recommendations." },
+    { icon: <FileText className="w-6 h-6 text-[#008269]" />, title: "Financial Health Card", description: "Renders multi-dimensional credit grades and explainable attributions in one view." },
+    { icon: <Activity className="w-6 h-6 text-[#008269]" />, title: "What-if Loan Simulator", description: "Allows credit officers to dynamically adjust exposure limits and model EMI impact instantly." },
+    { icon: <FileText className="w-6 h-6 text-[#008269]" />, title: "AI Credit Memo Generator", description: "One-click drafts of executive rationale credit summaries ready for manager sign-off." }
   ];
 
   return (
@@ -109,15 +101,15 @@ const Features = () => {
         <FadeIn>
           <h2 className="text-3xl font-semibold text-text-primary mb-12">Core Capabilities</h2>
         </FadeIn>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {features.map((feature, index) => (
-            <FadeIn key={index} delay={index * 0.1}>
-              <div className="bg-background-card border border-border p-6 rounded-card shadow-card h-full flex flex-col">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+          {activeFeatures.map((feature, index) => (
+            <FadeIn key={index} delay={index * 0.05}>
+              <div className="bg-background-card border border-border p-6 rounded-card shadow-card h-full flex flex-col hover:border-[#008269]/40 transition-colors">
                 <div className="w-12 h-12 rounded bg-background-muted flex items-center justify-center mb-6">
                   {feature.icon}
                 </div>
-                <h3 className="text-lg font-semibold text-text-primary mb-3">{feature.title}</h3>
-                <p className="text-sm text-text-secondary leading-relaxed flex-grow">
+                <h3 className="text-sm font-semibold text-text-primary mb-3">{feature.title}</h3>
+                <p className="text-xs text-text-secondary leading-relaxed flex-grow">
                   {feature.description}
                 </p>
               </div>

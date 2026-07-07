@@ -1,7 +1,7 @@
 import type { BusinessDetail, PortfolioRow } from "./types";
 import type { AuditEvent } from "../audit";
 
-const BASE_URL = "http://localhost:8000/api";
+const BASE_URL = "http://localhost:8001/api";
 
 export async function getPortfolio(): Promise<PortfolioRow[]> {
   const res = await fetch(`${BASE_URL}/portfolio`);
@@ -51,5 +51,18 @@ export async function queryCopilot(businessId: string, message: string): Promise
 export async function getAuditTrail(): Promise<AuditEvent[]> {
   const res = await fetch(`${BASE_URL}/audit`);
   if (!res.ok) throw new Error("Failed to fetch audit log");
+  return res.json();
+}
+
+export async function registerMSME(payload: any): Promise<{ business_id: string; score: number; band: string; report: any }> {
+  const res = await fetch(`${BASE_URL}/intake/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(errText || "Registration failed");
+  }
   return res.json();
 }
