@@ -112,6 +112,109 @@ const AnalysisWorkflow = () => {
   ];
 
   useEffect(() => {
+    // Start real-time API call to backend
+    const triggerEvaluation = async () => {
+      try {
+        const response = await fetch('/api/v1/evaluate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer mock-token'
+          },
+          body: JSON.stringify({
+            "msme_id": "MSME_2024_001",
+            "pan": "ABCDE1234F",
+            "gst_data": {
+              "gstin": "27ABCDE1234F1Z5",
+              "registration_date": "2022-01-15",
+              "monthly_returns": [
+                {"month": "2023-01", "revenue": 450000, "filed": true},
+                {"month": "2023-02", "revenue": 480000, "filed": true},
+                {"month": "2023-03", "revenue": 510000, "filed": true},
+                {"month": "2023-04", "revenue": 490000, "filed": true},
+                {"month": "2023-05", "revenue": 520000, "filed": true},
+                {"month": "2023-06", "revenue": 540000, "filed": true},
+                {"month": "2023-07", "revenue": 560000, "filed": true},
+                {"month": "2023-08", "revenue": 580000, "filed": true},
+                {"month": "2023-09", "revenue": 600000, "filed": true},
+                {"month": "2023-10", "revenue": 620000, "filed": true},
+                {"month": "2023-11", "revenue": 640000, "filed": true},
+                {"month": "2023-12", "revenue": 660000, "filed": true}
+              ],
+              "filing_history": {
+                "total_filings_due": 12,
+                "filings_completed": 12,
+                "filings_missed": 0
+              }
+            },
+            "upi_data": {
+              "transactions": [
+                {"transaction_id": "UPI001", "timestamp": "2024-01-15T10:30:00Z", "amount": 15000.50, "counterparty": "VENDOR_A", "type": "debit"},
+                {"transaction_id": "UPI002", "timestamp": "2024-01-16T14:20:00Z", "amount": 25000.00, "counterparty": "CLIENT_B", "type": "credit"},
+                {"transaction_id": "UPI003", "timestamp": "2024-01-17T09:15:00Z", "amount": 8500.75, "counterparty": "VENDOR_C", "type": "debit"},
+                {"transaction_id": "UPI004", "timestamp": "2024-01-18T16:45:00Z", "amount": 35000.00, "counterparty": "CLIENT_D", "type": "credit"},
+                {"transaction_id": "UPI005", "timestamp": "2024-01-19T11:30:00Z", "amount": 12000.25, "counterparty": "VENDOR_E", "type": "debit"},
+                {"transaction_id": "UPI006", "timestamp": "2024-02-15T10:30:00Z", "amount": 18000.00, "counterparty": "VENDOR_A", "type": "debit"},
+                {"transaction_id": "UPI007", "timestamp": "2024-02-16T14:20:00Z", "amount": 28000.00, "counterparty": "CLIENT_B", "type": "credit"},
+                {"transaction_id": "UPI008", "timestamp": "2024-03-15T10:30:00Z", "amount": 16000.00, "counterparty": "VENDOR_F", "type": "debit"},
+                {"transaction_id": "UPI009", "timestamp": "2024-03-16T14:20:00Z", "amount": 30000.00, "counterparty": "CLIENT_G", "type": "credit"},
+                {"transaction_id": "UPI010", "timestamp": "2024-04-15T10:30:00Z", "amount": 17000.00, "counterparty": "VENDOR_H", "type": "debit"}
+              ],
+              "summary": {
+                "total_transactions": 10,
+                "total_volume": 204501.50,
+                "period_start": "2024-01-01",
+                "period_end": "2024-04-30"
+              }
+            },
+            "account_aggregator_data": {
+              "monthly_statements": [
+                {"month": "2023-11", "opening_balance": 850000, "closing_balance": 920000, "total_credits": 650000, "total_debits": 580000},
+                {"month": "2023-12", "opening_balance": 920000, "closing_balance": 980000, "total_credits": 680000, "total_debits": 620000},
+                {"month": "2024-01", "opening_balance": 980000, "closing_balance": 1050000, "total_credits": 720000, "total_debits": 650000},
+                {"month": "2024-02", "opening_balance": 1050000, "closing_balance": 1120000, "total_credits": 750000, "total_debits": 680000},
+                {"month": "2024-03", "opening_balance": 1120000, "closing_balance": 1200000, "total_credits": 800000, "total_debits": 720000},
+                {"month": "2024-04", "opening_balance": 1200000, "closing_balance": 1280000, "total_credits": 850000, "total_debits": 770000}
+              ]
+            },
+            "epfo_data": {
+              "monthly_records": [
+                {"month": "2023-01", "employee_count": 12},
+                {"month": "2023-02", "employee_count": 12},
+                {"month": "2023-03", "employee_count": 13},
+                {"month": "2023-04", "employee_count": 13},
+                {"month": "2023-05", "employee_count": 14},
+                {"month": "2023-06", "employee_count": 14},
+                {"month": "2023-07", "employee_count": 15},
+                {"month": "2023-08", "employee_count": 15},
+                {"month": "2023-09", "employee_count": 16},
+                {"month": "2023-10", "employee_count": 16},
+                {"month": "2023-11", "employee_count": 17},
+                {"month": "2023-12", "employee_count": 18}
+              ]
+            },
+            "bank_data": {
+              "monthly_emi": 45000,
+              "outstanding_loan": 1500000,
+              "loan_to_turnover_ratio": 0.25,
+              "statement_start_date": "2024-01-01",
+              "statement_end_date": "2024-04-30"
+            }
+          })
+        });
+        
+        if (!response.ok) throw new Error("API status failed");
+        
+        const report = await response.json();
+        localStorage.setItem('assessment_report', JSON.stringify(report));
+      } catch (err) {
+        console.error("Failed to run real-time assessment: ", err);
+      }
+    };
+    triggerEvaluation();
+  }, []);
+
+  useEffect(() => {
     if (currentStep < steps.length) {
       const timer = setTimeout(() => {
         setCurrentStep(prev => prev + 1);

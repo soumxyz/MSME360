@@ -32,6 +32,9 @@ export default function UnderwritingDetails() {
     applications.find(a => a.id === id) || applications[0]
   );
   
+  // Real-time assessment report state
+  const [realReport, setRealReport] = useState<any>(null);
+
   // Interactive Chat State
   const [messages, setMessages] = useState([
     {
@@ -41,6 +44,27 @@ export default function UnderwritingDetails() {
   ]);
   const [inputText, setInputText] = useState('');
   const [creditMemo, setCreditMemo] = useState<any>(null);
+
+  // Load real-time assessment report if available in database/localStorage
+  React.useEffect(() => {
+    const stored = localStorage.getItem('assessment_report');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setRealReport(parsed);
+        
+        // Update first copilot message with the real Gemini explanation narrative!
+        setMessages([
+          {
+            sender: 'copilot',
+            text: parsed.explanation || `Hi, I am your CreditPilot AI Copilot. I have synthesized the assessments from Agent 1 and Agent 2 for ${selectedApp.name}.`
+          }
+        ]);
+      } catch (err) {
+        console.error("Failed to parse local storage report", err);
+      }
+    }
+  }, [selectedApp]);
 
   // Evidence Panel State
   const [activeEvidenceTab, setActiveEvidenceTab] = useState<string | null>(null);
@@ -83,25 +107,30 @@ export default function UnderwritingDetails() {
       let reply = "I am processing the data models. Could you specify your question?";
       const lower = text.toLowerCase();
       
+      const healthScore = realReport ? Math.round(realReport.financial_health_score) : 89;
+      const riskVal = realReport ? realReport.risk_category : selectedApp.risk;
+      const recommendation = realReport ? realReport.recommendation : 'Approve';
+      const explanation = realReport ? realReport.explanation : 'Consistent sales turnover, stable working capital cycles, moderate debt serviceability.';
+
       if (lower.includes('memo') || lower.includes('generate')) {
         setCreditMemo({
           borrower: selectedApp.name,
-          score: 89,
-          risk: selectedApp.risk,
-          recommendation: 'Approve',
-          amount: '₹18,50,000',
-          reason: 'Consistent sales turnover, stable working capital cycles, moderate debt serviceability.',
+          score: healthScore,
+          risk: riskVal,
+          recommendation: recommendation,
+          amount: recommendation === 'REJECT' ? '₹0' : '₹18,50,000',
+          reason: explanation,
           preparedBy: 'CreditPilot AI'
         });
         reply = "I have compiled and generated the Credit Memo Note below for your approval.";
       } else if (lower.includes('why') || lower.includes('low risk') || lower.includes('risk')) {
-        reply = "The applicant exhibits a Medium risk band because of a temporary GST revenue decline in Q2, coupled with an active equipment loan. However, their debt-service ratio (DSCR) remains comfortable and cash flows are solid.";
+        reply = `The applicant has a risk level of ${riskVal} with a score of ${healthScore}/100. ${explanation}`;
       } else if (lower.includes('summarize') || lower.includes('summary')) {
-        reply = `${selectedApp.name} has operated for 5 years with consistent GST filing history and healthy cash flows. No active fraud patterns were identified. I recommend a loan limit of ₹18.5 Lakhs at 9.3% interest.`;
+        reply = `Application summary for ${selectedApp.name}: ${explanation} Recommended Action is ${recommendation}.`;
       } else if (lower.includes('agent 1') || lower.includes('financial')) {
-        reply = "Agent 1 (Financial Intelligence) reported a score of 89/100. Growth is up 18% YoY and average balance remains solid at ₹6.5 Lakhs.";
+        reply = `Agent 1 reports a financial health score of ${healthScore}/100 with healthy sales turnover.`;
       } else if (lower.includes('agent 2') || lower.includes('compliance')) {
-        reply = "Agent 2 (Risk & Compliance) reports 0 active fraud triggers and confirms standard policy eligibility.";
+        reply = `Agent 2 evaluated eligibility: ${realReport ? realReport.eligibility : 'Eligible'}. Active policy violations: ${realReport ? realReport.policy_violations.join(', ') || 'None' : 'None'}.`;
       }
 
       setMessages(prev => [...prev, { sender: 'copilot', text: reply }]);
@@ -259,23 +288,37 @@ export default function UnderwritingDetails() {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="bg-white border border-border rounded-card p-4 text-center shadow-sm">
               <p className="text-[9px] uppercase tracking-wider font-bold text-text-secondary mb-1">Health Score</p>
-              <p className="text-2xl font-black text-success">89<span className="text-xs text-text-secondary">/100</span></p>
+              <p className="text-2xl font-black text-success">
+                {realReport ? Math.round(realReport.financial_health_score) : 89}
+                <span className="text-xs text-text-secondary">/100</span>
+              </p>
             </div>
             <div className="bg-white border border-border rounded-card p-4 text-center shadow-sm">
               <p className="text-[9px] uppercase tracking-wider font-bold text-text-secondary mb-1">AI Risk Band</p>
-              <p className="text-2xl font-black text-warning">{selectedApp.risk}</p>
+              <p className="text-2xl font-black text-warning">
+                {realReport ? realReport.risk_category : selectedApp.risk}
+              </p>
             </div>
             <div className="bg-white border border-border rounded-card p-4 text-center shadow-sm">
               <p className="text-[9px] uppercase tracking-wider font-bold text-text-secondary mb-1">AI Confidence</p>
-              <p className="text-2xl font-black text-primary">94%</p>
+              <p className="text-2xl font-black text-primary">
+                {realReport ? Math.round(realReport.confidence_level) : 94}%
+              </p>
             </div>
             <div className="bg-white border border-border rounded-card p-4 text-center shadow-sm">
               <p className="text-[9px] uppercase tracking-wider font-bold text-text-secondary mb-1">Limit Recommendation</p>
-              <p className="text-xl font-black text-text-primary">₹18.5L</p>
+              <p className="text-xl font-black text-text-primary">
+                {realReport ? (realReport.recommendation === 'REJECT' ? '₹0' : '₹18.5L') : '₹18.5L'}
+              </p>
             </div>
             <div className="bg-white border border-border rounded-card p-4 text-center shadow-sm">
               <p className="text-[9px] uppercase tracking-wider font-bold text-text-secondary mb-1">Interest Rate</p>
-              <p className="text-xl font-black text-text-primary">9.3%</p>
+              <p className="text-xl font-black text-text-primary">
+                {realReport 
+                  ? (realReport.risk_category === 'LOW' ? '8.5%' : realReport.risk_category === 'MEDIUM' ? '9.3%' : '11.5%') 
+                  : '9.3%'
+                }
+              </p>
             </div>
           </div>
 
