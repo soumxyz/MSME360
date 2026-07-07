@@ -8,28 +8,35 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#0F4C81',
-          hover: '#0C3D68',
+          DEFAULT: '#00836f', // IDBI Teal Green
+          hover: '#006a5a',
+          soft: '#e6f4f1',
+        },
+        accent: {
+          DEFAULT: '#f5821f', // IDBI Accent Orange
+          hover: '#d96d0f',
+          soft: '#fef3e7',
         },
         secondary: {
-          DEFAULT: '#2563EB',
+          DEFAULT: '#00836f',
         },
-        success: '#16A34A',
-        warning: '#D97706',
-        error: '#DC2626',
+        success: '#047857',
+        warning: '#b45309',
+        error: '#b91c1c',
         background: {
-          DEFAULT: '#F8FAFC',
-          card: '#FFFFFF',
-          muted: '#F3F4F6',
+          DEFAULT: '#f8fafc',
+          card: '#ffffff',
+          muted: '#f1f5f9',
         },
-        border: '#E5E7EB',
+        border: '#e2e8f0',
         text: {
-          primary: '#111827',
-          secondary: '#6B7280',
+          primary: '#0f172a',
+          secondary: '#64748b',
         }
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['"IBM Plex Sans"', 'sans-serif'],
+        mono: ['"IBM Plex Mono"', 'monospace'],
       },
       borderRadius: {
         card: '12px',

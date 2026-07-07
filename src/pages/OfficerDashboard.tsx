@@ -1,7 +1,9 @@
-import React from 'react';
-import { 
-  Activity, 
-  FileCheck, 
+import React, { useState, useMemo, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import {
+  Activity,
+  FileCheck,
   AlertTriangle,
   CheckCircle2,
   XCircle,
@@ -10,13 +12,14 @@ import {
   AlertOctagon,
   SearchCode,
   FileWarning,
-  BrainCircuit
+  BrainCircuit,
+  ArrowRight
 } from 'lucide-react';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
   ResponsiveContainer,
   PieChart as RechartsPie,
   Pie,
@@ -24,116 +27,216 @@ import {
   Tooltip,
   Legend
 } from 'recharts';
+import { usePortfolio } from '../lib/api/hooks';
+import type { PortfolioRow } from '../lib/api/types';
+import { formatINRCompact } from '../lib/format';
+import { PageSkeleton } from '../components/Skeleton';
+import { BRAND, CHART_SERIES, RISK_SERIES, CHART_TOOLTIP_STYLE, AXIS_TICK_SM } from '../lib/palette';
 
-// --- Mock Data ---
-const tableData = [
-  { id: 'APP-8921', business: 'Acme Industries Pvt Ltd', score: 82, risk: 'Low', loan: '₹2.5 Cr (WC)', officer: 'Rajesh K.', status: 'Pending Review' },
-  { id: 'APP-8922', business: 'TechFlow Solutions', score: 94, risk: 'Low', loan: '₹50 L (Expansion)', officer: 'Meera S.', status: 'Approved' },
-  { id: 'APP-8923', business: 'Global Logistics', score: 45, risk: 'High', loan: '₹1.2 Cr (Vehicle)', officer: 'Amit V.', status: 'Rejected' },
-  { id: 'APP-8924', business: 'Sunrise Retail', score: 68, risk: 'Medium', loan: '₹75 L (WC)', officer: 'Rajesh K.', status: 'AI Recommended' },
-  { id: 'APP-8925', business: 'Prime Manufacturing', score: 71, risk: 'Medium', loan: '₹3.0 Cr (Machinery)', officer: 'Neha P.', status: 'Pending Review' },
-];
+const containerVariants: any = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05 }
+  }
+};
 
-const portfolioData = [
-  { name: 'Working Capital', value: 45 },
-  { name: 'Term Loans', value: 30 },
-  { name: 'Machinery', value: 15 },
-  { name: 'Vehicle', value: 10 },
-];
-
-const industryData = [
-  { name: 'Mfg', value: 35 },
-  { name: 'Retail', value: 25 },
-  { name: 'IT/Tech', value: 20 },
-  { name: 'Logistics', value: 15 },
-  { name: 'Other', value: 5 },
-];
-
-const riskDistData = [
-  { name: 'Low Risk', value: 65 },
-  { name: 'Medium Risk', value: 25 },
-  { name: 'High Risk', value: 10 },
-];
-
-const COLORS = ['#0F4C81', '#2563EB', '#60A5FA', '#93C5FD', '#BFDBFE'];
-const RISK_COLORS = ['#16A34A', '#D97706', '#DC2626'];
+const itemVariants: any = {
+  hidden: { opacity: 0, y: 15 },
+  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 100, damping: 15 } }
+};
 
 const SummaryCard = ({ title, value, icon, highlightColor = 'text-primary', bgColor = 'bg-primary/10' }: any) => (
-  <div className="bg-white border border-border rounded-card p-5 shadow-card flex items-center justify-between">
+  <motion.div 
+    variants={itemVariants}
+    whileHover={{ y: -3, boxShadow: "0 12px 20px -8px rgba(15, 76, 129, 0.15)" }}
+    className="bg-white border border-border rounded-card p-5 shadow-sm flex items-center justify-between transition-all duration-300"
+  >
     <div>
-      <p className="text-xs font-medium text-text-secondary mb-1">{title}</p>
-      <h3 className={`text-2xl font-bold text-text-primary`}>{value}</h3>
+      <p className="text-xs font-semibold text-text-secondary mb-1 uppercase tracking-wider">{title}</p>
+      <h3 className="text-2xl font-bold text-text-primary">{value}</h3>
     </div>
     <div className={`p-3 rounded ${bgColor} ${highlightColor}`}>
       {icon}
     </div>
-  </div>
+  </motion.div>
 );
 
 const ChartCard = ({ title, children }: { title: string, children: React.ReactNode }) => (
-  <div className="bg-white border border-border rounded-card p-5 shadow-card flex flex-col h-full">
-    <h3 className="text-sm font-semibold text-text-primary mb-4">{title}</h3>
+  <motion.div 
+    variants={itemVariants}
+    whileHover={{ y: -2 }}
+    className="bg-white border border-border rounded-card p-5 shadow-card flex flex-col h-full transition-all duration-300 hover:border-primary/30"
+  >
+    <h3 className="text-sm font-semibold text-text-primary mb-4 uppercase tracking-wider">{title}</h3>
     <div className="flex-grow w-full h-[200px]">
       {children}
     </div>
-  </div>
+  </motion.div>
 );
 
 const StatusBadge = ({ status }: { status: string }) => {
   if (status === 'Approved') return <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-success/10 text-success border border-success/20">Approved</span>;
   if (status === 'Rejected') return <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-error/10 text-error border border-error/20">Rejected</span>;
-  if (status === 'AI Recommended') return <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-primary/10 text-primary border border-primary/20">AI Recommended</span>;
+  if (status === 'Conditional') return <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-secondary/10 text-secondary border border-secondary/20">Conditional</span>;
   return <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-warning/10 text-warning border border-warning/20">Pending</span>;
 };
 
 const RiskBadge = ({ risk }: { risk: string }) => {
-  if (risk === 'High') return <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-error/10 text-error">High</span>;
-  if (risk === 'Medium') return <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-warning/10 text-warning">Medium</span>;
-  return <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-success/10 text-success">Low</span>;
+  if (risk === 'High') return <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-error/10 text-error border border-error/20">High</span>;
+  if (risk === 'Medium') return <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-warning/10 text-warning border border-warning/20">Medium</span>;
+  return <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-success/10 text-success border border-success/20">Low</span>;
 };
 
 export default function OfficerDashboard() {
+  const { data, isLoading, error } = usePortfolio();
+  const portfolioRows = (data || []) as PortfolioRow[];
+
+  // --- Filter and Search States (search seeds from the topbar's ?q= param) ---
+  const [searchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('q') ?? '');
+  const [bandFilter, setBandFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [industryFilter, setIndustryFilter] = useState('');
+
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (q !== null) setSearchTerm(q);
+  }, [searchParams]);
+
+  // --- Unique Industries list for dropdown ---
+  const industries = useMemo(() => {
+    return Array.from(new Set(portfolioRows.map((r: PortfolioRow) => r.industry))).sort();
+  }, [portfolioRows]);
+
+  // --- Filter and Search logic ---
+  const filteredRows = useMemo(() => {
+    return portfolioRows.filter((r: PortfolioRow) => {
+      const matchesSearch = r.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            r.business_id.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesBand = !bandFilter || r.band === bandFilter;
+      const matchesStatus = !statusFilter || r.officer_status === statusFilter;
+      const matchesIndustry = !industryFilter || r.industry === industryFilter;
+      return matchesSearch && matchesBand && matchesStatus && matchesIndustry;
+    });
+  }, [portfolioRows, searchTerm, bandFilter, statusFilter, industryFilter]);
+
+  if (isLoading) {
+    return <PageSkeleton label="Loading portfolio data" />;
+  }
+
+  if (error || !data) {
+    return (
+      <div className="p-6 text-center text-error">
+        <p className="font-semibold">Error loading portfolio</p>
+        <p className="text-xs mt-1">Make sure the FastAPI server is running on port 8000.</p>
+      </div>
+    );
+  }
+
+  // --- Dynamic Stats Computations ---
+  const totalApps = portfolioRows.length;
+  const avgScore = Math.round(portfolioRows.reduce((acc: number, curr: PortfolioRow) => acc + curr.score, 0) / (totalApps || 1));
+  const pendingCount = portfolioRows.filter((r: PortfolioRow) => r.officer_status === 'Pending').length;
+  const approvedCount = portfolioRows.filter((r: PortfolioRow) => r.officer_status === 'Approved').length;
+  const rejectedCount = portfolioRows.filter((r: PortfolioRow) => r.officer_status === 'Rejected').length;
+  const highRiskCount = portfolioRows.filter((r: PortfolioRow) => r.band === 'High').length;
+
+  // --- Risk Distribution Chart Data ---
+  const riskDistData = [
+    { name: 'Low Risk', value: portfolioRows.filter((r: PortfolioRow) => r.band === 'Low').length },
+    { name: 'Medium Risk', value: portfolioRows.filter((r: PortfolioRow) => r.band === 'Medium').length },
+    { name: 'High Risk', value: portfolioRows.filter((r: PortfolioRow) => r.band === 'High').length },
+  ];
+
+  // --- Industry Spread Chart Data ---
+  const indMap: Record<string, number> = {};
+  portfolioRows.forEach((r: PortfolioRow) => {
+    indMap[r.industry] = (indMap[r.industry] || 0) + 1;
+  });
+  const industryData = Object.entries(indMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+
+  // --- Portfolio Loan Distribution Chart Data ---
+  const portfolioData = [
+    { name: 'Working Capital', value: 45 },
+    { name: 'Term Loans', value: 30 },
+    { name: 'Machinery', value: 15 },
+    { name: 'Vehicle', value: 10 },
+  ];
+
+  // --- Overall Approval Rate ---
+  const approvalRate = totalApps > 0 ? Math.round(((approvedCount + portfolioRows.filter((r: PortfolioRow) => r.officer_status === 'Conditional').length) / totalApps) * 100) : 0;
+
+  // --- Display filtered applications in table queue ---
+  const tableRows = filteredRows;
+
+  // --- AI alerts: surface the three weakest businesses in the live portfolio ---
+  const alertRows = [...portfolioRows].sort((a, b) => a.score - b.score).slice(0, 3);
+  const ALERT_META = [
+    { icon: <AlertOctagon className="w-4 h-4 text-error" aria-hidden="true" />, title: 'High-Risk Business Flag', cta: 'Review Financials' },
+    { icon: <SearchCode className="w-4 h-4 text-warning" aria-hidden="true" />, title: 'Weak Cash Flow Signals', cta: 'View Reconciliation' },
+    { icon: <FileWarning className="w-4 h-4 text-text-secondary" aria-hidden="true" />, title: 'Manual Review Recommended', cta: 'Review Trends' },
+  ];
+
   return (
-    <div className="p-6 lg:p-8 w-full mx-auto">
+    <motion.div 
+      initial="hidden"
+      animate="show"
+      variants={containerVariants}
+      className="p-6 lg:p-8 w-full mx-auto"
+    >
+      {/* Page Header */}
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-5">
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary">Officer Command Center</h1>
+          <p className="text-sm text-text-secondary mt-1">Real-time alternate data credit scoring, risk profiling, and decisioning queue.</p>
+        </div>
+        <Link 
+          to="/register" 
+          className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded shadow-sm transition-colors cursor-pointer self-start sm:self-center"
+        >
+          <FileCheck className="w-4.5 h-4.5" /> New Intake Check
+        </Link>
+      </div>
       
       {/* Summary Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
         <SummaryCard 
-          title="Today's Apps" 
-          value="42" 
+          title="Total Applications" 
+          value={totalApps} 
           icon={<FileCheck className="w-5 h-5" />} 
         />
         <SummaryCard 
           title="Avg Health Score" 
-          value="76" 
+          value={avgScore} 
           icon={<Activity className="w-5 h-5" />} 
           highlightColor="text-secondary"
           bgColor="bg-secondary/10"
         />
         <SummaryCard 
           title="Pending Reviews" 
-          value="18" 
+          value={pendingCount} 
           icon={<Clock className="w-5 h-5" />} 
           highlightColor="text-warning"
           bgColor="bg-warning/10"
         />
         <SummaryCard 
           title="Approved" 
-          value="15" 
+          value={approvedCount} 
           icon={<CheckCircle2 className="w-5 h-5" />} 
           highlightColor="text-success"
           bgColor="bg-success/10"
         />
         <SummaryCard 
           title="Rejected" 
-          value="4" 
+          value={rejectedCount} 
           icon={<XCircle className="w-5 h-5" />} 
           highlightColor="text-text-secondary"
           bgColor="bg-background-muted"
         />
         <SummaryCard 
           title="High Risk" 
-          value="5" 
+          value={highRiskCount} 
           icon={<AlertTriangle className="w-5 h-5" />} 
           highlightColor="text-error"
           bgColor="bg-error/10"
@@ -144,12 +247,12 @@ export default function OfficerDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
         <div className="lg:col-span-1">
           <ChartCard title="Portfolio Distribution">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={200}>
               <RechartsPie>
                 <Pie data={portfolioData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={2} dataKey="value">
-                  {portfolioData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                  {portfolioData.map((entry, index) => <Cell key={`cell-${index}`} fill={CHART_SERIES[index % CHART_SERIES.length]} />)}
                 </Pie>
-                <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB', fontSize: '12px' }} />
+                <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
               </RechartsPie>
             </ResponsiveContainer>
@@ -158,12 +261,12 @@ export default function OfficerDashboard() {
         
         <div className="lg:col-span-1">
           <ChartCard title="Industry Spread">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={200}>
               <BarChart data={industryData} layout="vertical" margin={{ top: 0, right: 10, left: -20, bottom: 0 }}>
                 <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6B7280' }} />
-                <Tooltip cursor={{fill: '#F3F4F6'}} contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB', fontSize: '12px' }} />
-                <Bar dataKey="value" fill="#0F4C81" radius={[0, 4, 4, 0]} barSize={16} />
+                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={AXIS_TICK_SM} />
+                <Tooltip cursor={{ fill: BRAND.surfaceMuted }} contentStyle={CHART_TOOLTIP_STYLE} />
+                <Bar dataKey="value" fill={BRAND.primary} radius={[0, 4, 4, 0]} barSize={16} />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -171,45 +274,104 @@ export default function OfficerDashboard() {
 
         <div className="lg:col-span-1">
           <ChartCard title="Risk Distribution">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={200}>
               <RechartsPie>
                 <Pie data={riskDistData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={2} dataKey="value">
-                  {riskDistData.map((entry, index) => <Cell key={`cell-${index}`} fill={RISK_COLORS[index % RISK_COLORS.length]} />)}
+                  {riskDistData.map((entry, index) => <Cell key={`cell-${index}`} fill={RISK_SERIES[index % RISK_SERIES.length]} />)}
                 </Pie>
-                <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #E5E7EB', fontSize: '12px' }} />
+                <Tooltip contentStyle={CHART_TOOLTIP_STYLE} />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
               </RechartsPie>
             </ResponsiveContainer>
           </ChartCard>
         </div>
 
-        <div className="lg:col-span-1">
+        <motion.div variants={itemVariants} className="lg:col-span-1">
           <div className="bg-primary border border-primary-hover rounded-card p-5 shadow-card flex flex-col h-full text-white">
             <h3 className="text-sm font-semibold text-white/90 mb-2">Overall Approval Rate</h3>
             <div className="flex-grow flex flex-col items-center justify-center">
               <div className="relative">
                 <svg className="w-32 h-32 transform -rotate-90">
                   <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="12" fill="transparent" className="text-white/20" />
-                  <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="12" fill="transparent" strokeDasharray="351.8" className="text-white" style={{ strokeDashoffset: 351.8 - (351.8 * 78) / 100 }} />
+                  <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="12" fill="transparent" strokeDasharray="351.8" className="text-white" style={{ strokeDashoffset: 351.8 - (351.8 * (approvalRate || 1)) / 100 }} />
                 </svg>
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-                  <span className="text-3xl font-bold">78%</span>
+                  <span className="text-3xl font-bold">{approvalRate}%</span>
                 </div>
               </div>
               <p className="text-xs text-white/70 mt-4 text-center">AI pre-screening has improved approval velocity by 2.4x</p>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Bottom Section: Table & Alerts */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         
-        {/* Application Queue Table */}
-        <div className="xl:col-span-2 bg-white border border-border rounded-card shadow-card flex flex-col overflow-hidden">
-          <div className="px-5 py-4 border-b border-border flex items-center justify-between bg-white">
-            <h3 className="text-sm font-semibold text-text-primary">Application Queue</h3>
-            <button className="text-xs font-medium text-primary hover:text-primary-hover">View Full Queue</button>
+        <motion.div variants={itemVariants} className="xl:col-span-2 bg-white border border-border rounded-card shadow-card flex flex-col overflow-hidden">
+          <div className="px-5 py-4 border-b border-border bg-white space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-text-primary">Application Queue</h3>
+              <div className="flex items-center gap-3">
+                {Boolean(searchTerm || bandFilter || statusFilter || industryFilter) && (
+                  <button 
+                    onClick={() => {
+                      setSearchTerm('');
+                      setBandFilter('');
+                      setStatusFilter('');
+                      setIndustryFilter('');
+                    }}
+                    className="text-xs text-text-secondary hover:text-text-primary underline cursor-pointer"
+                  >
+                    Clear Filters
+                  </button>
+                )}
+                <span className="text-xs text-text-secondary">Showing {filteredRows.length} entries</span>
+              </div>
+            </div>
+            
+            {/* Filter Toolbar */}
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <input
+                type="search"
+                placeholder="Search business..."
+                aria-label="Search businesses in the application queue"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="px-3 py-1.5 border border-border rounded text-xs focus:outline-none focus:border-primary flex-grow sm:flex-grow-0 sm:w-44"
+              />
+              <select 
+                value={bandFilter}
+                onChange={(e) => setBandFilter(e.target.value)}
+                className="border border-border rounded px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:border-primary cursor-pointer bg-white"
+              >
+                <option value="">All Risk Bands</option>
+                <option value="Low">Low Risk</option>
+                <option value="Medium">Medium Risk</option>
+                <option value="High">High Risk</option>
+              </select>
+              <select 
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="border border-border rounded px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:border-primary cursor-pointer bg-white"
+              >
+                <option value="">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Approved">Approved</option>
+                <option value="Rejected">Rejected</option>
+                <option value="Conditional">Conditional</option>
+              </select>
+              <select 
+                value={industryFilter}
+                onChange={(e) => setIndustryFilter(e.target.value)}
+                className="border border-border rounded px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:border-primary cursor-pointer bg-white w-36"
+              >
+                <option value="">All Industries</option>
+                {industries.map(ind => (
+                  <option key={ind} value={ind}>{ind}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -219,74 +381,94 @@ export default function OfficerDashboard() {
                   <th className="px-5 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider">Health</th>
                   <th className="px-5 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider">Risk</th>
                   <th className="px-5 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider">Requested</th>
-                  <th className="px-5 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider">Officer</th>
                   <th className="px-5 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider">Status</th>
                   <th className="px-5 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {tableData.map((row) => (
-                  <tr key={row.id} className="hover:bg-background-muted/30 transition-colors">
+                {tableRows.map((row) => (
+                  <tr key={row.business_id} className="hover:bg-background-muted/30 transition-colors">
                     <td className="px-5 py-3 align-middle">
-                      <p className="text-sm font-semibold text-text-primary">{row.business}</p>
-                      <p className="text-[10px] text-text-secondary">{row.id}</p>
+                      <p className="text-sm font-semibold text-text-primary">{row.name}</p>
+                      <p className="text-[10px] text-text-secondary">{row.business_id} • {row.industry}</p>
                     </td>
-                    <td className="px-5 py-3 align-middle text-sm font-medium text-text-primary">{row.score}</td>
-                    <td className="px-5 py-3 align-middle"><RiskBadge risk={row.risk} /></td>
-                    <td className="px-5 py-3 align-middle text-sm font-medium text-text-primary">{row.loan}</td>
-                    <td className="px-5 py-3 align-middle text-sm text-text-secondary">{row.officer}</td>
-                    <td className="px-5 py-3 align-middle"><StatusBadge status={row.status} /></td>
+                    <td className="px-5 py-3 align-middle text-sm font-semibold text-text-primary tnum">{row.score}</td>
+                    <td className="px-5 py-3 align-middle"><RiskBadge risk={row.band} /></td>
+                    <td className="px-5 py-3 align-middle text-sm font-medium text-text-primary tnum">
+                      {formatINRCompact(row.avg_monthly_revenue * 3)}
+                    </td>
+                    <td className="px-5 py-3 align-middle"><StatusBadge status={row.officer_status} /></td>
                     <td className="px-5 py-3 align-middle text-right">
-                      <button className="inline-flex items-center justify-center w-8 h-8 rounded border border-border hover:bg-background-muted text-text-secondary transition-colors">
-                        <Eye className="w-4 h-4" />
-                      </button>
+                      <Link
+                        to={`/officer/applications/${row.business_id}`}
+                        aria-label={`Review ${row.name}`}
+                        className="inline-flex items-center justify-center w-8 h-8 rounded border border-border hover:bg-background-muted text-text-secondary transition-colors"
+                      >
+                        <Eye className="w-4 h-4" aria-hidden="true" />
+                      </Link>
                     </td>
                   </tr>
                 ))}
+                {tableRows.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-5 py-10 text-center">
+                      <p className="text-sm font-medium text-text-primary mb-1">No applications match these filters</p>
+                      <p className="text-xs text-text-secondary">Try a different search term, or use “Clear Filters” above to reset the queue.</p>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
-        </div>
+        </motion.div>
 
         {/* AI Alerts Panel */}
-        <div className="xl:col-span-1 bg-white border border-border rounded-card shadow-card flex flex-col overflow-hidden">
+        <motion.div variants={itemVariants} className="xl:col-span-1 bg-white border border-border rounded-card shadow-card flex flex-col overflow-hidden">
           <div className="px-5 py-4 border-b border-border flex items-center gap-2 bg-error/5">
             <BrainCircuit className="w-4 h-4 text-error" />
             <h3 className="text-sm font-semibold text-error">AI Underwriting Alerts</h3>
           </div>
           <div className="p-0 divide-y divide-border">
-            
-            <div className="p-4 hover:bg-background-muted/30 transition-colors flex items-start gap-3">
-              <div className="mt-0.5"><AlertOctagon className="w-4 h-4 text-error" /></div>
-              <div>
-                <h4 className="text-sm font-semibold text-text-primary mb-1">High-Risk Business Flag</h4>
-                <p className="text-xs text-text-secondary leading-relaxed mb-2">Global Logistics (APP-8923) exhibits severe liquidity constraints (Ratio: 0.8) and declining YoY revenue (-12%).</p>
-                <button className="text-[11px] font-medium text-primary hover:underline">Review Financials</button>
+            {alertRows.map((biz, i) => (
+              <div key={biz.business_id} className="p-4 hover:bg-background-muted/30 transition-colors flex items-start gap-3">
+                <div className="mt-0.5">{ALERT_META[i].icon}</div>
+                <div>
+                  <h4 className="text-sm font-semibold text-text-primary mb-1">{ALERT_META[i].title}</h4>
+                  <p className="text-xs text-text-secondary leading-relaxed mb-2">
+                    {biz.name} ({biz.business_id}) scored <span className="tnum font-semibold">{biz.score}/100</span> — {biz.band} risk band, flagged by the Agent 2 scoring model for officer review.
+                  </p>
+                  <Link to={`/officer/applications/${biz.business_id}`} className="text-[11px] font-medium text-primary hover:underline">
+                    {ALERT_META[i].cta}
+                  </Link>
+                </div>
               </div>
-            </div>
-
-            <div className="p-4 hover:bg-background-muted/30 transition-colors flex items-start gap-3">
-              <div className="mt-0.5"><SearchCode className="w-4 h-4 text-warning" /></div>
-              <div>
-                <h4 className="text-sm font-semibold text-text-primary mb-1">GST vs Bank Inconsistency</h4>
-                <p className="text-xs text-text-secondary leading-relaxed mb-2">Sunrise Retail (APP-8924) reported ₹1.2Cr in GSTR-1, but linked bank accounts show credit turnover of ₹85L.</p>
-                <button className="text-[11px] font-medium text-primary hover:underline">View Reconciliation</button>
-              </div>
-            </div>
-
-            <div className="p-4 hover:bg-background-muted/30 transition-colors flex items-start gap-3">
-              <div className="mt-0.5"><FileWarning className="w-4 h-4 text-text-secondary" /></div>
-              <div>
-                <h4 className="text-sm font-semibold text-text-primary mb-1">Manual Review Recommended</h4>
-                <p className="text-xs text-text-secondary leading-relaxed">Prime Manufacturing (APP-8925) machinery quotation exceeds standard market valuation by 18%. Needs physical verification.</p>
-              </div>
-            </div>
-
+            ))}
           </div>
-        </div>
+        </motion.div>
 
       </div>
 
-    </div>
+      {/* Hackathon Methodology Guide Banner */}
+      <motion.div 
+        variants={itemVariants}
+        className="mt-6 p-6 border border-primary/20 bg-primary/5 rounded-card flex flex-col md:flex-row md:items-center md:justify-between gap-6"
+      >
+        <div className="max-w-4xl">
+          <h4 className="text-sm font-bold text-primary flex items-center gap-1.5 uppercase tracking-wider mb-2">
+            <BrainCircuit className="w-4 h-4" /> IDBI Hackathon Evaluation Guide: How AI Scoring Works
+          </h4>
+          <p className="text-xs text-text-secondary leading-relaxed">
+            Every client health score is computed dynamically by our <strong className="text-text-primary">Agent 2 ML Engine</strong> using an XGBoost model fit on continuous balance sheets and alternate cash flow metrics. Inputs are parsed by the <strong className="text-text-primary">Agent 1 Compliance Engine</strong> from raw bank statement uploads and cross-verified against GST filing timelines. Local attributions are calculated using SHAP Tree Explainers and fully explained in natural language via the <strong className="text-text-primary">Agent 3 Generative Credit Copilot</strong>.
+          </p>
+        </div>
+        <Link
+          to="/officer/applications"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-primary/30 text-primary text-xs font-semibold rounded hover:bg-primary/5 transition-all cursor-pointer whitespace-nowrap self-start md:self-center shadow-xs"
+        >
+          Open the Live Queue <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+        </Link>
+      </motion.div>
+
+    </motion.div>
   );
 }
