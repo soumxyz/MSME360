@@ -19,7 +19,7 @@ const financialData = [
   { month: 'Jun', revenue: 67, cashflow: 48 },
 ];
 
-const applications = [
+const DEFAULT_APPLICATIONS = [
   { id: 'APP-10294', name: 'ABC Manufacturing', type: 'Manufacturing', status: 'Pending Review', risk: 'Medium', loan: '₹20,00,000' },
   { id: 'APP-10295', name: 'XYZ Traders', type: 'Retail & Commerce', status: 'High Risk', risk: 'High', loan: '₹15,00,000' },
   { id: 'APP-10296', name: 'Sharma Electronics', type: 'Electronics Dealership', status: 'Approved', risk: 'Low', loan: '₹35,00,000' },
@@ -28,9 +28,18 @@ const applications = [
 
 export default function UnderwritingDetails() {
   const { id } = useParams();
-  const [selectedApp, setSelectedApp] = useState(
-    applications.find(a => a.id === id) || applications[0]
-  );
+  
+  // Load applications list from localStorage (real-time DB sync)
+  const [applications, setApplications] = useState<any[]>(() => {
+    const stored = localStorage.getItem('all_applications');
+    return stored ? JSON.parse(stored) : DEFAULT_APPLICATIONS;
+  });
+
+  const [selectedApp, setSelectedApp] = useState(() => {
+    const stored = localStorage.getItem('all_applications');
+    const list = stored ? JSON.parse(stored) : DEFAULT_APPLICATIONS;
+    return list.find((a: any) => a.id === id) || list[0];
+  });
   
   // Real-time assessment report state
   const [realReport, setRealReport] = useState<any>(null);
@@ -51,15 +60,25 @@ export default function UnderwritingDetails() {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        setRealReport(parsed);
         
-        // Update first copilot message with the real Gemini explanation narrative!
-        setMessages([
-          {
-            sender: 'copilot',
-            text: parsed.explanation || `Hi, I am your CreditPilot AI Copilot. I have synthesized the assessments from Agent 1 and Agent 2 for ${selectedApp.name}.`
-          }
-        ]);
+        // Match the report context to the active application
+        if (selectedApp.name === 'ABC Manufacturing' || selectedApp.name === parsed.msme_identifier || parsed.explanation.includes(selectedApp.name)) {
+          setRealReport(parsed);
+          setMessages([
+            {
+              sender: 'copilot',
+              text: parsed.explanation || `Hi, I am your CreditPilot AI Copilot. I have synthesized the assessments from Agent 1 and Agent 2 for ${selectedApp.name}.`
+            }
+          ]);
+        } else {
+          setRealReport(null);
+          setMessages([
+            {
+              sender: 'copilot',
+              text: `Hi, I am your CreditPilot AI Copilot. I have synthesized the assessments from Agent 1 (Financial Intelligence) and Agent 2 (Risk & Compliance) for ${selectedApp.name}. Ask me anything about this application!`
+            }
+          ]);
+        }
       } catch (err) {
         console.error("Failed to parse local storage report", err);
       }

@@ -3,7 +3,7 @@ import { motion as framerMotion, AnimatePresence as FramerAnimatePresence } from
 import { useNavigate } from 'react-router-dom';
 import { 
   Activity, FileText, Smartphone, Landmark, Briefcase, 
-  CheckCircle2, AlertCircle, Loader2, ArrowRight, ShieldCheck, ArrowLeft
+  CheckCircle2, AlertCircle, Loader2, ArrowRight, ShieldCheck, ArrowLeft, Building2
 } from 'lucide-react';
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected';
@@ -40,7 +40,7 @@ const WIZARD_STEPS: WizardStep[] = [
   }
 ];
 
-const AnalysisWorkflow = () => {
+const AnalysisWorkflow = ({ businessName, businessType, loanRequested }: any) => {
   const [currentStep, setCurrentStep] = useState(0);
   const navigate = useNavigate();
 
@@ -148,12 +148,33 @@ const AnalysisWorkflow = () => {
         
         const report = await response.json();
         localStorage.setItem('assessment_report', JSON.stringify(report));
+
+        // Save real-time application record to list
+        const defaultApps = [
+          { id: 'APP-10294', name: 'ABC Manufacturing', type: 'Manufacturing', status: 'Pending Review', risk: 'Medium', loan: '₹20,00,000' },
+          { id: 'APP-10295', name: 'XYZ Traders', type: 'Retail & Commerce', status: 'High Risk', risk: 'High', loan: '₹15,00,000' },
+          { id: 'APP-10296', name: 'Sharma Electronics', type: 'Electronics Dealership', status: 'Approved', risk: 'Low', loan: '₹35,00,000' },
+          { id: 'APP-10297', name: 'Kumar Textiles', type: 'Apparel Mfg', status: 'Pending Review', risk: 'Medium', loan: '₹25,00,000' },
+        ];
+        const stored = localStorage.getItem('all_applications');
+        const currentApps = stored ? JSON.parse(stored) : defaultApps;
+
+        const newApp = {
+          id: 'APP-' + Math.floor(10000 + Math.random() * 9000),
+          name: businessName || 'Acme Industries Pvt Ltd',
+          type: businessType || 'Manufacturing',
+          status: 'Pending Review',
+          risk: report.risk_category || 'Medium',
+          loan: '₹' + Number(loanRequested || 2000000).toLocaleString('en-IN')
+        };
+        
+        localStorage.setItem('all_applications', JSON.stringify([newApp, ...currentApps]));
       } catch (err) {
         console.error("Failed to run real-time assessment: ", err);
       }
     };
     triggerEvaluation();
-  }, []);
+  }, [businessName, businessType, loanRequested]);
 
   useEffect(() => {
     if (currentStep < steps.length) {
@@ -229,7 +250,15 @@ const AnalysisWorkflow = () => {
 };
 
 export default function BusinessRegistration() {
-  const [activeStep, setActiveStep] = useState(0);
+  const [activeStep, setActiveStep] = useState(0); // Step 0 = Basic Info Form
+  
+  // Basic Business Info form fields
+  const [businessName, setBusinessName] = useState('');
+  const [ownerName, setOwnerName] = useState('');
+  const [pan, setPan] = useState('');
+  const [loanRequested, setLoanRequested] = useState('');
+  const [businessType, setBusinessType] = useState('Manufacturing');
+
   const [statuses, setStatuses] = useState<Record<string, ConnectionStatus>>({
     gst: 'disconnected',
     aa: 'disconnected',
@@ -242,7 +271,7 @@ export default function BusinessRegistration() {
     setStatuses(prev => ({ ...prev, [id]: 'connecting' }));
     setTimeout(() => {
       setStatuses(prev => ({ ...prev, [id]: 'connected' }));
-    }, 1500); // 1.5s animation proper
+    }, 1500); // 1.5s animation
   };
 
   const handleConnect = (id: string) => {
@@ -253,21 +282,24 @@ export default function BusinessRegistration() {
     autoConnect(id);
   };
 
-  // Automatically start connecting the next source when the active step mounts
+  // Automatically start connecting when steps 1, 2, or 3 mount
   useEffect(() => {
-    if (activeStep < WIZARD_STEPS.length) {
-      const source = WIZARD_STEPS[activeStep];
+    if (activeStep > 0 && activeStep <= WIZARD_STEPS.length) {
+      const source = WIZARD_STEPS[activeStep - 1];
       if (statuses[source.id] === 'disconnected') {
         const timer = setTimeout(() => {
           autoConnect(source.id);
-        }, 600); // Small delay to let transitions finish
+        }, 600);
         return () => clearTimeout(timer);
       }
     }
   }, [activeStep]);
 
-  const currentSource = WIZARD_STEPS[activeStep];
+  const currentSource = activeStep > 0 && activeStep <= WIZARD_STEPS.length ? WIZARD_STEPS[activeStep - 1] : null;
   const isCurrentStepConnected = currentSource && statuses[currentSource.id] === 'connected';
+
+  // Enable Next button validation for step 0
+  const isBasicInfoValid = businessName.trim() !== '' && pan.trim() !== '' && loanRequested.trim() !== '';
 
   return (
     <div className="min-h-screen flex flex-col bg-background font-sans selection:bg-primary selection:text-white">
@@ -295,9 +327,22 @@ export default function BusinessRegistration() {
             >
               {/* Stepper Progress Indicator */}
               <div className="flex items-center justify-between mb-10 border-b border-border pb-6">
+                <div className="flex items-center gap-2">
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                    activeStep > 0 ? 'bg-success text-white' : 'bg-primary text-white ring-4 ring-primary/20'
+                  }`}>
+                    1
+                  </div>
+                  <span className={`text-xs font-semibold ${activeStep === 0 ? 'text-primary' : 'text-success'}`}>
+                    Basic Information
+                  </span>
+                </div>
+                <div className="w-8 h-[1px] bg-border mx-2 hidden md:block" />
+
                 {WIZARD_STEPS.map((step, idx) => {
-                  const isPast = idx < activeStep;
-                  const isCurrent = idx === activeStep;
+                  const stepIdx = idx + 1;
+                  const isPast = stepIdx < activeStep;
+                  const isCurrent = stepIdx === activeStep;
                   return (
                     <div key={step.id} className="flex items-center gap-2">
                       <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
@@ -307,14 +352,14 @@ export default function BusinessRegistration() {
                           ? 'bg-primary text-white ring-4 ring-primary/20' 
                           : 'bg-background-muted text-text-secondary border border-border'
                       }`}>
-                        {isPast ? '✓' : idx + 1}
+                        {isPast ? '✓' : stepIdx + 1}
                       </div>
                       <span className={`text-xs font-semibold hidden md:inline ${
                         isCurrent ? 'text-primary' : isPast ? 'text-success' : 'text-text-secondary'
                       }`}>
                         {step.id.toUpperCase()} Connection
                       </span>
-                      {idx < WIZARD_STEPS.length - 1 && (
+                      {stepIdx < WIZARD_STEPS.length && (
                         <div className="w-8 h-[1px] bg-border mx-2 hidden md:block" />
                       )}
                     </div>
@@ -322,33 +367,109 @@ export default function BusinessRegistration() {
                 })}
               </div>
 
-              {/* Central Dynamic Connection Box */}
-              {activeStep < WIZARD_STEPS.length ? (
+              {/* Dynamic Connection View */}
+              {activeStep === 0 ? (
+                // Step 0: Basic Info Form
                 <framerMotion.div
-                  key={currentSource.id}
+                  key="basic-info-form"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white border border-border rounded-card p-8 md:p-12 shadow-card space-y-6"
+                >
+                  <div className="flex items-center gap-3 pb-4 border-b border-border">
+                    <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                      <Building2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-text-primary">Business Profile Setup</h2>
+                      <p className="text-xs text-text-secondary">Provide structural parameters to initialize assessment algorithms.</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+                    <div>
+                      <label className="block font-bold text-text-primary uppercase tracking-wider mb-2">Registered Business Name</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. Acme Industries Pvt Ltd"
+                        value={businessName}
+                        onChange={(e) => setBusinessName(e.target.value)}
+                        className="w-full p-2.5 border border-border bg-white rounded focus:outline-none focus:border-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-text-primary uppercase tracking-wider mb-2">Owner Full Name</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. Priya Sharma"
+                        value={ownerName}
+                        onChange={(e) => setOwnerName(e.target.value)}
+                        className="w-full p-2.5 border border-border bg-white rounded focus:outline-none focus:border-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-text-primary uppercase tracking-wider mb-2">Business PAN ID</label>
+                      <input 
+                        type="text" 
+                        maxLength={10}
+                        placeholder="e.g. ABCDE1234F"
+                        value={pan}
+                        onChange={(e) => setPan(e.target.value)}
+                        className="w-full p-2.5 border border-border bg-white rounded focus:outline-none focus:border-primary uppercase"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-text-primary uppercase tracking-wider mb-2">Loan Amount Required (INR)</label>
+                      <input 
+                        type="number" 
+                        placeholder="e.g. 2000000"
+                        value={loanRequested}
+                        onChange={(e) => setLoanRequested(e.target.value)}
+                        className="w-full p-2.5 border border-border bg-white rounded focus:outline-none focus:border-primary"
+                      />
+                    </div>
+                    <div>
+                      <label className="block font-bold text-text-primary uppercase tracking-wider mb-2">Sectors classification</label>
+                      <select
+                        value={businessType}
+                        onChange={(e) => setBusinessType(e.target.value)}
+                        className="w-full p-2.5 border border-border bg-white rounded focus:outline-none focus:border-primary"
+                      >
+                        <option value="Manufacturing">Manufacturing & Engineering</option>
+                        <option value="Retail & Commerce">Retail & Wholesale Commerce</option>
+                        <option value="Electronics Dealership">Electronics Dealership</option>
+                        <option value="Apparel Mfg">Apparel Manufacturing</option>
+                      </select>
+                    </div>
+                  </div>
+                </framerMotion.div>
+              ) : activeStep <= WIZARD_STEPS.length ? (
+                // Steps 1 to 3: Connections
+                <framerMotion.div
+                  key={currentSource!.id}
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="bg-white border border-border rounded-card p-8 md:p-12 shadow-card flex flex-col items-center text-center"
                 >
                   <div className="w-20 h-20 bg-primary/5 rounded-full flex items-center justify-center mb-6 border border-primary/10">
-                    {currentSource.icon}
+                    {currentSource!.icon}
                   </div>
                   
                   <span className="text-[10px] bg-success/15 text-success border border-success/20 font-bold px-3 py-1 rounded-full mb-3 flex items-center gap-1">
-                    <ShieldCheck className="w-3.5 h-3.5" /> {currentSource.infoLabel}
+                    <ShieldCheck className="w-3.5 h-3.5" /> {currentSource!.infoLabel}
                   </span>
 
-                  <h2 className="text-xl font-bold text-text-primary mb-3">{currentSource.name}</h2>
+                  <h2 className="text-xl font-bold text-text-primary mb-3">{currentSource!.name}</h2>
                   <p className="text-sm text-text-secondary max-w-md mb-8 leading-relaxed">
-                    {currentSource.description}
+                    {currentSource!.description}
                   </p>
 
                   <div className="w-full max-w-xs space-y-4">
-                    {statuses[currentSource.id] === 'connected' ? (
+                    {statuses[currentSource!.id] === 'connected' ? (
                       <div className="p-3 border border-success bg-success/5 rounded flex items-center justify-center gap-2 text-success font-semibold text-sm">
                         <CheckCircle2 className="w-4 h-4" /> Connected Successfully
                       </div>
-                    ) : statuses[currentSource.id] === 'connecting' ? (
+                    ) : statuses[currentSource!.id] === 'connecting' ? (
                       <button 
                         disabled 
                         className="w-full py-3 bg-warning text-white rounded font-medium text-sm flex items-center justify-center gap-2"
@@ -357,7 +478,7 @@ export default function BusinessRegistration() {
                       </button>
                     ) : (
                       <button 
-                        onClick={() => handleConnect(currentSource.id)}
+                        onClick={() => handleConnect(currentSource!.id)}
                         className="w-full py-3 bg-primary hover:bg-primary-hover text-white rounded font-semibold text-sm transition-colors shadow-sm"
                       >
                         Consent & Connect
@@ -376,6 +497,12 @@ export default function BusinessRegistration() {
                   <p className="text-xs text-text-secondary text-center mb-8">All required consent channels have been configured successfully.</p>
                   
                   <div className="space-y-4 max-w-md mx-auto mb-10">
+                    <div className="p-4 border border-border rounded-card flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-semibold text-text-secondary uppercase">Applicant profile:</span>
+                        <span className="text-xs font-bold text-text-primary">{businessName}</span>
+                      </div>
+                    </div>
                     {WIZARD_STEPS.map((step) => (
                       <div key={step.id} className="p-4 border border-border rounded-card flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -407,9 +534,9 @@ export default function BusinessRegistration() {
                 >
                   <ArrowLeft className="w-3.5 h-3.5" /> Back
                 </button>
-                {activeStep < WIZARD_STEPS.length && (
+                {activeStep <= WIZARD_STEPS.length && (
                   <button
-                    disabled={!isCurrentStepConnected}
+                    disabled={activeStep === 0 ? !isBasicInfoValid : !isCurrentStepConnected}
                     onClick={() => setActiveStep(prev => prev + 1)}
                     className="px-5 py-2 bg-primary hover:bg-primary-hover text-white rounded text-xs font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                   >
@@ -426,7 +553,11 @@ export default function BusinessRegistration() {
               transition={{ duration: 0.3 }}
               className="w-full flex-grow flex items-center justify-center bg-background"
             >
-              <AnalysisWorkflow />
+              <AnalysisWorkflow 
+                businessName={businessName}
+                businessType={businessType}
+                loanRequested={loanRequested}
+              />
             </framerMotion.div>
           )}
         </FramerAnimatePresence>
