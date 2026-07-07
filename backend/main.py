@@ -198,6 +198,45 @@ async def upload_intake(bank_file: UploadFile = File(...), gst_file: UploadFile 
                 })
                 
             # Compute category performance scores
+            # Calculate date delta in months (to vary gst_regularity)
+            delta_months = 6
+            if "Date" in df.columns:
+                try:
+                    df["Date"] = pd.to_datetime(df["Date"])
+                    min_d = df["Date"].min()
+                    max_d = df["Date"].max()
+                    delta_months = (max_d.year - min_d.year) * 12 + (max_d.month - min_d.month)
+                except Exception:
+                    pass
+            
+            gst_regularity = min(1.0, max(0.5, delta_months / 12.0))
+            
+            # Digital payments ratio based on UPI/IMPS/NEFT/RTGS strings in Description
+            digital_payment_ratio = 0.9
+            if "Description" in df.columns:
+                try:
+                    digital_count = df["Description"].str.contains("UPI|IMPS|NEFT|RTGS|BharatPe|PhonePe|GPay|Paytm", case=False, na=False).sum()
+                    digital_payment_ratio = min(1.0, max(0.4, float(digital_count / len(df))))
+                except Exception:
+                    pass
+            
+            # Revenue growth based on credit volume of second half vs first half
+            revenue_growth = 0.05
+            try:
+                half = len(df) // 2
+                if half > 0:
+                    first_half_credits = df.iloc[:half]["Credit"].sum()
+                    second_half_credits = df.iloc[half:]["Credit"].sum()
+                    if first_half_credits > 0:
+                        growth = (second_half_credits - first_half_credits) / first_half_credits
+                        revenue_growth = min(0.4, max(-0.4, float(growth)))
+            except Exception:
+                pass
+            
+            # Scaled volatility (to prevent Stability rating from always being clamped to 0)
+            scaled_volatility = min(0.95, max(0.05, volatility / 3.0))
+            
+            # Compute category performance scores
             cash_buffer_days = (avg_bal / max(1.0, total_debits / 180.0)) if total_debits > 0 else 15.0
             
             report_dict = {
@@ -207,13 +246,13 @@ async def upload_intake(bank_file: UploadFile = File(...), gst_file: UploadFile 
                 "trends": trends,
                 "metrics": {
                     "cash_buffer_days": round(cash_buffer_days, 1),
-                    "income_volatility": round(volatility, 2),
+                    "income_volatility": round(scaled_volatility, 2),
                     "expense_ratio": round(expense_ratio, 2),
                     "bounce_count": 0.0,
                     "emi_ratio": 0.0,
-                    "gst_regularity": 1.0,
-                    "digital_payment_ratio": 0.9,
-                    "revenue_growth": 0.05,
+                    "gst_regularity": round(gst_regularity, 2),
+                    "digital_payment_ratio": round(digital_payment_ratio, 2),
+                    "revenue_growth": round(revenue_growth, 2),
                     "monthly_savings_rate": 0.15,
                     "average_balance": round(avg_bal, 2),
                     "minimum_balance": round(min_bal, 2)
