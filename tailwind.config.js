@@ -8,41 +8,53 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#00836f', // IDBI Teal Green
-          hover: '#006a5a',
-          soft: '#e6f4f1',
+          DEFAULT: '#006D5B', // Deeper, more premium emerald green
+          hover: '#005445',
+          soft: '#E0F2EF',
+          glow: '#00836f33'
         },
         accent: {
-          DEFAULT: '#f5821f', // IDBI Accent Orange
-          hover: '#d96d0f',
-          soft: '#fef3e7',
+          DEFAULT: '#E65C00', // Richer, burnt orange
+          hover: '#C24D00',
+          soft: '#FFF0E5',
         },
         secondary: {
-          DEFAULT: '#00836f',
+          DEFAULT: '#1E293B',
         },
-        success: '#047857',
-        warning: '#b45309',
-        error: '#b91c1c',
+        success: '#059669',
+        warning: '#D97706',
+        error: '#DC2626',
         background: {
-          DEFAULT: '#f8fafc',
-          card: '#ffffff',
-          muted: '#f1f5f9',
+          DEFAULT: '#F4F7FA',
+          card: '#FFFFFF',
+          muted: '#E2E8F0',
         },
-        border: '#e2e8f0',
+        border: '#CBD5E1',
         text: {
-          primary: '#0f172a',
-          secondary: '#64748b',
+          primary: '#0F172A',
+          secondary: '#475569',
         }
       },
       fontFamily: {
-        sans: ['"IBM Plex Sans"', 'sans-serif'],
-        mono: ['"IBM Plex Mono"', 'monospace'],
+        sans: ['"Outfit"', 'sans-serif'],
+        display: ['"Bricolage Grotesque"', 'sans-serif'],
       },
       borderRadius: {
-        card: '12px',
+        card: '16px',
       },
       boxShadow: {
-        card: '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)',
+        card: '0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 0 3px 0px rgba(0,0,0,0.02)',
+        glow: '0 0 20px -5px var(--tw-shadow-color)',
+      },
+      animation: {
+        'float': 'float 6s ease-in-out infinite',
+        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+      },
+      keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-10px)' },
+        }
       }
     },
   },

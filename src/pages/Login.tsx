@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ShieldCheck, UserCheck, Key, Lock, ArrowRight, Building, HelpCircle } from 'lucide-react';
+import { login as apiLogin } from '../lib/api';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -11,55 +12,48 @@ export default function Login() {
   const [activeTab, setActiveTab] = useState<'customer' | 'officer'>(initialRole);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const handleSendOtp = () => {
+  async function doLogin(u: string, p: string) {
+    setIsLoading(true);
+    setErrorMessage('');
+    try {
+      const auth = await apiLogin(u, p);
+      // The server, not the UI tab, decides where you land — a customer token
+      // never opens the officer console.
+      if (auth.role === 'officer') {
+        navigate('/officer/dashboard');
+      } else {
+        navigate('/customer/dashboard');
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setErrorMessage(msg || 'Sign-in failed. Check your credentials.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const handleLoginSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     if (!username || !password) {
       setErrorMessage('Please fill in username and password fields.');
       return;
     }
-    setErrorMessage('');
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      setOtpSent(true);
-      setOtpCode('4829'); // Auto-fill demo OTP code
-    }, 800);
-  };
-
-  const handleLoginSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (otpSent && !otpCode) {
-      setErrorMessage('Please enter the OTP verification code.');
-      return;
-    }
-
-    setIsLoading(true);
-    setErrorMessage('');
-
-    setTimeout(() => {
-      setIsLoading(false);
-      if (activeTab === 'officer') {
-        navigate('/officer/dashboard');
-      } else {
-        navigate('/register');
-      }
-    }, 1000);
+    void doLogin(username, password);
   };
 
   const quickDemoLogin = (role: 'customer' | 'officer') => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      if (role === 'officer') {
-        navigate('/officer/dashboard');
-      } else {
-        navigate('/register');
-      }
-    }, 600);
+    if (role === 'officer') {
+      setUsername('officer_demo');
+      setPassword('officer123');
+      void doLogin('officer_demo', 'officer123');
+    } else {
+      setUsername('customer_demo');
+      setPassword('customer123');
+      void doLogin('customer_demo', 'customer123');
+    }
   };
 
   return (
@@ -110,7 +104,6 @@ export default function Login() {
             <button
               onClick={() => {
                 setActiveTab('customer');
-                setOtpSent(false);
                 setErrorMessage('');
               }}
               className={`flex-1 pb-3 text-sm font-semibold border-b-2 transition-all flex items-center justify-center gap-2 ${
@@ -124,7 +117,6 @@ export default function Login() {
             <button
               onClick={() => {
                 setActiveTab('officer');
-                setOtpSent(false);
                 setErrorMessage('');
               }}
               className={`flex-1 pb-3 text-sm font-semibold border-b-2 transition-all flex items-center justify-center gap-2 ${
@@ -174,32 +166,6 @@ export default function Login() {
               </div>
             </div>
 
-            {/* OTP Section Simulation */}
-            {otpSent && (
-              <motion.div 
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-2"
-              >
-                <div className="flex justify-between items-center">
-                  <label className="block text-xs font-bold text-text-primary uppercase tracking-wider">Multi-Factor OTP Code</label>
-                  <span className="text-[10px] text-success font-semibold">Demo code sent successfully</span>
-                </div>
-                <div className="relative">
-                  <Key className="w-4 h-4 text-text-secondary absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    maxLength={4}
-                    placeholder="Enter 4-digit code"
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2.5 border border-border bg-white rounded text-xs focus:outline-none focus:border-[#008269] font-semibold text-center tracking-widest text-lg"
-                  />
-                </div>
-              </motion.div>
-            )}
-
-            {/* Submit and Action Toggles */}
             <div className="pt-2">
               {isLoading ? (
                 <button
@@ -209,20 +175,12 @@ export default function Login() {
                 >
                   <Loader2 className="w-4 h-4 animate-spin" /> Verifying Credentials...
                 </button>
-              ) : !otpSent ? (
-                <button
-                  type="button"
-                  onClick={handleSendOtp}
-                  className="w-full py-3 bg-[#008269] hover:bg-[#005443] text-white font-bold rounded text-xs transition-colors flex items-center justify-center gap-1.5 shadow-sm"
-                >
-                  Authenticate Session <ArrowRight className="w-4 h-4" />
-                </button>
               ) : (
                 <button
                   type="submit"
                   className="w-full py-3 bg-[#008269] hover:bg-[#005443] text-white font-bold rounded text-xs transition-colors flex items-center justify-center gap-1.5 shadow-sm"
                 >
-                  Verify & Sign In <ArrowRight className="w-4 h-4" />
+                  Sign In <ArrowRight className="w-4 h-4" />
                 </button>
               )}
             </div>
@@ -235,25 +193,17 @@ export default function Login() {
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] font-semibold">
               <button
-                onClick={() => {
-                  setUsername('ABC_MFG');
-                  setPassword('demo_pass');
-                  quickDemoLogin('customer');
-                }}
+                onClick={() => quickDemoLogin('customer')}
                 className="p-2 border border-border hover:border-[#008269]/40 bg-white rounded transition-colors text-left truncate flex items-center justify-between"
               >
-                <span>Demo MSME Owner</span>
+                <span>customer_demo</span>
                 <span className="text-[#008269]">Login ➔</span>
               </button>
               <button
-                onClick={() => {
-                  setUsername('IDBI_OFFICER');
-                  setPassword('demo_pass');
-                  quickDemoLogin('officer');
-                }}
+                onClick={() => quickDemoLogin('officer')}
                 className="p-2 border border-border hover:border-[#008269]/40 bg-white rounded transition-colors text-left truncate flex items-center justify-between"
               >
-                <span>Demo Loan Officer</span>
+                <span>officer_demo</span>
                 <span className="text-[#008269]">Login ➔</span>
               </button>
             </div>

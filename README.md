@@ -1,32 +1,97 @@
-# React + TypeScript + Vite
+# MSME360 — Alternate-data credit workspace
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A React + FastAPI demo platform for small-business (MSME) credit assessment.
+Two role-based experiences:
 
-Currently, two official plugins are available:
+- **Customer** (`/customer/*`) — MSMEs register a business, upload consent-driven
+  documents, and view a pre-qualified credit report.
+- **Officer** (`/officer/*`) — Bank credit officers review the application queue,
+  see the AI-driven risk score with SHAP-style factor attribution, chat with the
+  Credit Copilot, and record Approve/Reject/Conditional decisions.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Stack
 
-## React Compiler
+| Layer     | Choice                                                         |
+|-----------|----------------------------------------------------------------|
+| Frontend  | React 19 + TypeScript + Vite + Tailwind + React Router + React Query + Recharts |
+| Backend   | FastAPI + SQLite + Pydantic v2 + JWT auth (python-jose + passlib) |
+| ML        | XGBoost model + SHAP explanations (see `risk agent/`)          |
+| Data      | Seeded CSVs in `Dataset/` for demo; SQLite at `backend/msme_workspace.db` |
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Getting started
 
-## Expanding the Oxlint configuration
+### 1. Backend
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+cd backend
+python -m venv .venv && source .venv/Scripts/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env    # edit JWT_SECRET etc.
+python -m uvicorn main:app --reload --port 8000
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Demo users are seeded on first startup:
+
+| Username        | Password      | Role     |
+|-----------------|---------------|----------|
+| `officer_demo`  | `officer123`  | officer  |
+| `customer_demo` | `customer123` | customer |
+
+Change them via a proper user-provisioning flow before deploying anywhere.
+
+### 2. Frontend
+
+```bash
+npm install
+cp .env.example .env    # sets VITE_API_URL
+npm run dev
+```
+
+Open http://localhost:5173/login and sign in with one of the demo accounts above.
+
+### 3. Tests
+
+Backend:
+
+```bash
+cd backend
+pytest -v
+```
+
+Every test runs against an isolated temp SQLite; no test touches your dev DB.
+
+## Layout
+
+```
+backend/           FastAPI app (main.py, auth.py, db.py, agent*.py, creditpilot_*.py)
+src/               React app
+  App.tsx          Router + ProtectedRoute wrappers + ErrorBoundary
+  layouts/         CustomerLayout, OfficerLayout
+  pages/           17 route components
+  components/      ChatPanel, MemoModal, ScoreGauge, FactorBars, Skeleton, ErrorBoundary, ProtectedRoute
+  lib/
+    api/           Fetch client + react-query hooks + wire types
+    auth.ts        Token store (localStorage)
+    format.ts      INR / date formatters
+    palette.ts     Brand colours
+Dataset/           Static features CSV + HANDOFF.md wire contract
+risk agent/        Standalone risk intelligence agent (imported via sys.path)
+```
+
+## Security posture
+
+Real, server-side auth is enforced. Every officer-only route in `backend/main.py`
+uses `Depends(require_officer)`; `<ProtectedRoute>` in `src/App.tsx` is a UX
+convenience, **not** the security boundary.
+
+CORS is env-driven (`CORS_ALLOW_ORIGINS`) with `credentials=true`, so any deploy
+must set an explicit allowlist — no wildcards.
+
+## Contributing
+
+Before opening a PR:
+
+```bash
+npm run lint && npm run build   # frontend
+cd backend && pytest -v         # backend
+```

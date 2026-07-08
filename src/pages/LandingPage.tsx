@@ -36,10 +36,9 @@ const Navbar = () => (
         <span className="font-semibold text-lg text-primary tracking-tight">CreditPulse AI</span>
       </div>
       <div className="hidden md:flex items-center gap-8 text-sm font-medium text-text-secondary">
-        <a href="#" className="hover:text-primary transition-colors">Home</a>
+        <a href="#top" className="hover:text-primary transition-colors">Home</a>
         <a href="#features" className="hover:text-primary transition-colors">Features</a>
         <a href="#workflow" className="hover:text-primary transition-colors">How It Works</a>
-        <a href="#" className="hover:text-primary transition-colors">About</a>
       </div>
       <div className="flex items-center gap-4 text-sm font-medium">
         <Link to="/login?role=officer" className="text-text-primary hover:text-primary transition-colors">Officer Login</Link>
@@ -186,25 +185,8 @@ const Footer = () => (
         <div>
           <h4 className="font-semibold text-text-primary mb-4 text-sm">Platform</h4>
           <ul className="space-y-3 text-sm text-text-secondary">
-            <li><a href="#" className="hover:text-primary transition-colors">Features</a></li>
-            <li><a href="#" className="hover:text-primary transition-colors">Security</a></li>
-            <li><a href="#" className="hover:text-primary transition-colors">API Integration</a></li>
-          </ul>
-        </div>
-        <div>
-          <h4 className="font-semibold text-text-primary mb-4 text-sm">Resources</h4>
-          <ul className="space-y-3 text-sm text-text-secondary">
-            <li><a href="#" className="hover:text-primary transition-colors">Documentation</a></li>
-            <li><a href="#" className="hover:text-primary transition-colors">Help Center</a></li>
-            <li><a href="#" className="hover:text-primary transition-colors">Contact Support</a></li>
-          </ul>
-        </div>
-        <div>
-          <h4 className="font-semibold text-text-primary mb-4 text-sm">Legal</h4>
-          <ul className="space-y-3 text-sm text-text-secondary">
-            <li><a href="#" className="hover:text-primary transition-colors">Privacy Policy</a></li>
-            <li><a href="#" className="hover:text-primary transition-colors">Terms of Service</a></li>
-            <li><a href="#" className="hover:text-primary transition-colors">Regulatory Compliance</a></li>
+            <li><a href="#features" className="hover:text-primary transition-colors">Features</a></li>
+            <li><a href="#workflow" className="hover:text-primary transition-colors">How It Works</a></li>
           </ul>
         </div>
       </div>

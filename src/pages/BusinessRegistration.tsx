@@ -24,9 +24,15 @@ import {
   Building2,
   HelpCircle,
   Check,
-  BrainCircuit
+  BrainCircuit,
+  FileSpreadsheet,
+  Camera,
+  Sparkles,
+  Info
 } from 'lucide-react';
-import { registerMSME } from '../lib/api';
+import { registerMSME, extractDocument } from '../lib/api';
+import type { OcrExtractResult } from '../lib/api';
+import { formatINR } from '../lib/format';
 
 const steps = [
   { title: "Aggregating Digital Consents", desc: "Financial Intelligence Agent is securely fetching records from GSTN, EPFO, and UPI networks." },
@@ -53,8 +59,9 @@ const slideVariants = {
   })
 };
 
-const AnalysisWorkflow = ({ businessId }: { businessId: string }) => {
+const AnalysisWorkflow = ({ businessId: _businessId }: { businessId: string }) => {
   const [currentStep, setCurrentStep] = useState(0);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (currentStep < steps.length) {
@@ -63,23 +70,25 @@ const AnalysisWorkflow = ({ businessId }: { businessId: string }) => {
       }, 1800);
       return () => clearTimeout(timer);
     } else {
+      // Client-side navigation preserves the freshly-warmed react-query cache;
+      // the previous `window.location.href` triggered a full page reload.
       const timer = setTimeout(() => {
-        window.location.href = '/customer/dashboard';
+        navigate('/customer/dashboard');
       }, 800);
       return () => clearTimeout(timer);
     }
-  }, [currentStep]);
+  }, [currentStep, navigate]);
 
   return (
     <div className="w-full max-w-2xl mx-auto py-12 px-4">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white border border-border rounded-card shadow-card p-8 md:p-12"
+        className="glass-panel p-8 md:p-12 shadow-primary/10"
       >
         <div className="text-center mb-10">
-          <div className="w-16 h-16 bg-[#008269]/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Activity className="w-8 h-8 text-[#008269] animate-pulse" />
+          <div className="w-16 h-16 bg-primary-soft rounded-full flex items-center justify-center mx-auto mb-6 shadow-glow shadow-primary/20">
+            <Activity className="w-8 h-8 text-primary animate-pulse-slow" />
           </div>
           <h2 className="text-2xl font-semibold text-text-primary mb-2">Analyzing Business Creditworthiness</h2>
           <p className="text-sm text-text-secondary">Please wait while our multi-agent AI system processes your application.</p>
@@ -172,10 +181,13 @@ export default function BusinessRegistration() {
   const [submitting, setSubmitting] = useState(false);
   const [registeredId, setRegisteredId] = useState('');
 
-  // OCR Mocking States
+  // OCR States
   const [isOcrLoading, setIsOcrLoading] = useState(false);
   const [ocrProgressText, setOcrProgressText] = useState("");
   const [ocrSuccess, setOcrSuccess] = useState<string | null>(null);
+  const [ocrSource, setOcrSource] = useState<string | null>(null);
+  const [ocrExtracted, setOcrExtracted] = useState<OcrExtractResult['extracted'] | null>(null);
+  const [ocrFileName, setOcrFileName] = useState<string | null>(null);
 
   // Consent Sub-Step Animation States
   const [consentSubStep, setConsentSubStep] = useState(1);
@@ -231,36 +243,81 @@ export default function BusinessRegistration() {
     }
   };
 
-  const handleOcrFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleOcrFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const isCSV = file.name.toLowerCase().endsWith('.csv');
+    const isImage = file.type.startsWith('image/');
+    
     setIsOcrLoading(true);
     setOcrSuccess(null);
-    setOcrProgressText("Initializing Gemini Vision OCR Engine...");
-    
-    setTimeout(() => {
-      setOcrProgressText("Scanning statement structure and transaction blocks...");
-      setTimeout(() => {
-        setOcrProgressText("Extracting business details & calculating cash-flow parameters...");
-        setTimeout(() => {
-          setIsOcrLoading(false);
-          setOcrSuccess("AI OCR Extraction Successful! Pre-filled manual fields.");
-          setBusinessName("Surat Silk Weaves");
-          setOwnerName("Abhishek Mohapatra");
-          setMobileNumber("9988776655");
-          setEmail("abhishek@silkweaves.in");
-          setPanNumber("ABCDE5678X");
-          setGstin("27ABCDE5678X1Z1");
-          setUdyamNumber("UDYAM-MH-12-0048291");
-          setYearsInBusiness("6");
-          setLoanAmount("1500000");
-          setBusinessType("Sole Proprietor");
-          setIndustry("Manufacturing");
-        }, 1200);
-      }, 1200);
-    }, 1200);
+    setOcrSource(null);
+    setOcrExtracted(null);
+    setOcrFileName(file.name);
+
+    if (isCSV) {
+      setOcrProgressText("Parsing CSV bank statement structure...");
+    } else {
+      setOcrProgressText("Initializing Gemini Vision OCR Engine...");
+    }
+
+    try {
+      // Brief delay for UX polish
+      await new Promise(r => setTimeout(r, 600));
+      setOcrProgressText(isCSV 
+        ? "Extracting transaction data & computing financial metrics..."
+        : "Scanning statement layout and extracting text blocks..."
+      );
+
+      const result = await extractDocument(file);
+      const data = result.extracted;
+
+      await new Promise(r => setTimeout(r, 400));
+      setOcrProgressText("Mapping extracted fields to registration form...");
+      await new Promise(r => setTimeout(r, 300));
+
+      // Pre-fill form fields from extracted data
+      if (data.business_name) setBusinessName(data.business_name);
+      if (data.owner_name) setOwnerName(data.owner_name);
+      if (data.pan_number) setPanNumber(data.pan_number);
+      if (data.gstin) setGstin(data.gstin);
+      if (data.industry_hint) {
+        // Map industry hint to nearest select option
+        const hint = data.industry_hint.toLowerCase();
+        if (hint.includes('manufactur') || hint.includes('textile') || hint.includes('silk')) setIndustry('Manufacturing');
+        else if (hint.includes('retail') || hint.includes('kirana') || hint.includes('store') || hint.includes('grocery')) setIndustry('Retail');
+        else if (hint.includes('wholesale') || hint.includes('distribut')) setIndustry('Wholesale');
+        else if (hint.includes('service')) setIndustry('Services');
+        else if (hint.includes('logistic') || hint.includes('transport')) setIndustry('Logistics');
+        else setIndustry('Others');
+      }
+
+      // Determine source label
+      let sourceLabel = "AI Extraction";
+      if (result.source === 'csv_parser') sourceLabel = "CSV Parser";
+      else if (result.source === 'gemini_vision') sourceLabel = "Gemini Vision AI";
+      else if (result.source === 'mock_fallback') sourceLabel = "Demo Mode (set GEMINI_API_KEY for live)";
+
+      setOcrSource(sourceLabel);
+      setOcrExtracted(data);
+      setIsOcrLoading(false);
+
+      const fieldCount = [data.business_name, data.owner_name, data.pan_number, data.gstin, data.industry_hint].filter(Boolean).length;
+      setOcrSuccess(
+        isCSV 
+          ? `CSV Parsed! ${data.transaction_count ?? 0} transactions analyzed. ${fieldCount} fields pre-filled.`
+          : `Vision Extraction Complete! ${fieldCount} fields pre-filled.`
+      );
+    } catch (err: any) {
+      console.error('OCR extraction failed:', err);
+      setIsOcrLoading(false);
+      setOcrSuccess(null);
+      setOcrSource(null);
+      setErrorMsg(`Document extraction failed: ${err.message}`);
+    }
   };
+
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Consent toggles simulation
@@ -351,8 +408,11 @@ export default function BusinessRegistration() {
         mobile_number: mobileNumber,
         email: email,
         pan_number: panNumber.toUpperCase(),
-        gstin: gstin ? gstin.toUpperCase() : null,
-        udyam_number: udyamNumber ? udyamNumber : null,
+        // Only send `gstin`/`udyam_number` when the user filled them in — the
+        // backend Pydantic model expects `Optional[str]`, which is `undefined`
+        // in TS-land, not `null`.
+        ...(gstin ? { gstin: gstin.toUpperCase() } : {}),
+        ...(udyamNumber ? { udyam_number: udyamNumber } : {}),
         business_type: businessType,
         industry: industry,
         years_in_business: parseInt(yearsInBusiness),
@@ -362,10 +422,10 @@ export default function BusinessRegistration() {
         connect_aa: connectAa,
         connect_upi: connectUpi,
         connect_epfo: connectEpfo,
-        upload_pan: panFile,
-        upload_aadhaar: aadhaarFile,
-        upload_udyam: udyamFile,
-        upload_bank: bankFile
+        ...(panFile ? { upload_pan: panFile } : {}),
+        ...(aadhaarFile ? { upload_aadhaar: aadhaarFile } : {}),
+        ...(udyamFile ? { upload_udyam: udyamFile } : {}),
+        ...(bankFile ? { upload_bank: bankFile } : {}),
       };
 
       const result = await registerMSME(payload);
@@ -418,7 +478,7 @@ export default function BusinessRegistration() {
               </div>
 
               {/* Stepper Progress Bar */}
-              <div className="w-full bg-white border border-border rounded-card p-5 mb-8 shadow-sm flex items-center justify-between">
+              <div className="w-full glass-panel p-5 mb-8 flex items-center justify-between">
                 <div className="flex items-center w-full max-w-2xl mx-auto justify-between relative">
                   {/* Background Progress bar line */}
                   <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-border -translate-y-1/2 z-0" />
@@ -499,45 +559,125 @@ export default function BusinessRegistration() {
                         </div>
                        </div>
 
-                      {/* Paper Bank Statement OCR Mockup Widget */}
-                      <div className="bg-[#008269]/5 border border-[#008269]/20 rounded p-4 mb-4">
-                        <h4 className="text-xs font-bold text-[#008269] uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                          <BrainCircuit className="w-4 h-4" /> AI Document OCR Quick Start
-                        </h4>
+                      {/* Document Intelligence OCR Widget */}
+                      <div className="bg-[#008269]/5 border border-[#008269]/20 rounded-lg p-4 mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-xs font-bold text-[#008269] uppercase tracking-wider flex items-center gap-1.5">
+                            <BrainCircuit className="w-4 h-4" /> AI Document Intelligence
+                          </h4>
+                          {ocrSource && (
+                            <span className="text-[9px] font-semibold text-[#008269]/70 bg-[#008269]/10 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <Sparkles className="w-3 h-3" /> {ocrSource}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[11px] text-text-secondary leading-relaxed mb-3">
-                          Upload a photo/scan of a paper bank statement (PNG/JPEG). Gemini's vision pipeline will auto-extract details to minimize manual entry.
+                          Upload a <strong>bank statement image</strong> (PNG/JPEG) for Gemini Vision extraction, or a <strong>CSV bank statement</strong> for instant parsing. Fields will auto-populate below.
                         </p>
                         
                         {isOcrLoading ? (
-                          <div className="flex flex-col items-center justify-center py-4 bg-white border border-border border-dashed rounded">
-                            <Loader2 className="w-6 h-6 text-[#008269] animate-spin mb-2" />
+                          <div className="flex flex-col items-center justify-center py-6 bg-white border border-[#008269]/20 border-dashed rounded-lg">
+                            <div className="relative mb-3">
+                              <Loader2 className="w-7 h-7 text-[#008269] animate-spin" />
+                              <div className="absolute inset-0 w-7 h-7 rounded-full border-2 border-[#008269]/20 animate-ping" />
+                            </div>
                             <span className="text-[11px] font-semibold text-text-primary animate-pulse">{ocrProgressText}</span>
+                            {ocrFileName && <span className="text-[9px] text-text-secondary mt-1">Processing: {ocrFileName}</span>}
                           </div>
                         ) : ocrSuccess ? (
-                          <div className="p-3 bg-success/15 border border-success/30 rounded text-success text-[11px] font-semibold flex items-center justify-between">
-                            <div className="flex items-center gap-1.5">
-                              <Check className="w-4 h-4" />
-                              <span>{ocrSuccess}</span>
+                          <div className="space-y-2">
+                            <div className="p-3 bg-success/10 border border-success/25 rounded-lg text-success text-[11px] font-semibold flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <CheckCircle2 className="w-4 h-4" />
+                                <span>{ocrSuccess}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOcrSuccess(null);
+                                  setOcrSource(null);
+                                  setOcrExtracted(null);
+                                  setOcrFileName(null);
+                                }}
+                                className="text-[10px] text-text-secondary hover:underline cursor-pointer flex items-center gap-1"
+                              >
+                                <X className="w-3 h-3" /> Clear & Re-upload
+                              </button>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => setOcrSuccess(null)}
-                              className="text-[10px] text-text-secondary hover:underline cursor-pointer"
-                            >
-                              Reset
-                            </button>
+                            
+                            {/* Extracted Financial Summary (shown for CSV) */}
+                            {ocrExtracted && (ocrExtracted.total_credits || ocrExtracted.transaction_count) && (
+                              <div className="bg-white border border-border rounded-lg p-3">
+                                <div className="flex items-center gap-1.5 mb-2">
+                                  <Info className="w-3.5 h-3.5 text-[#008269]" />
+                                  <span className="text-[10px] font-bold text-text-primary uppercase tracking-wider">Extracted Financial Summary</span>
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                  {ocrExtracted.total_credits != null && ocrExtracted.total_credits > 0 && (
+                                    <div className="bg-success/5 border border-success/15 rounded px-2.5 py-1.5">
+                                      <p className="text-[8px] font-bold text-success uppercase">Total Credits</p>
+                                      <p className="text-xs font-bold text-text-primary">{formatINR(ocrExtracted.total_credits)}</p>
+                                    </div>
+                                  )}
+                                  {ocrExtracted.total_debits != null && ocrExtracted.total_debits > 0 && (
+                                    <div className="bg-error/5 border border-error/15 rounded px-2.5 py-1.5">
+                                      <p className="text-[8px] font-bold text-error uppercase">Total Debits</p>
+                                      <p className="text-xs font-bold text-text-primary">{formatINR(ocrExtracted.total_debits)}</p>
+                                    </div>
+                                  )}
+                                  {ocrExtracted.average_balance != null && ocrExtracted.average_balance > 0 && (
+                                    <div className="bg-[#008269]/5 border border-[#008269]/15 rounded px-2.5 py-1.5">
+                                      <p className="text-[8px] font-bold text-[#008269] uppercase">Avg Balance</p>
+                                      <p className="text-xs font-bold text-text-primary">{formatINR(ocrExtracted.average_balance)}</p>
+                                    </div>
+                                  )}
+                                  {ocrExtracted.transaction_count != null && ocrExtracted.transaction_count > 0 && (
+                                    <div className="bg-primary/5 border border-primary/15 rounded px-2.5 py-1.5">
+                                      <p className="text-[8px] font-bold text-primary uppercase">Transactions</p>
+                                      <p className="text-xs font-bold text-text-primary">{ocrExtracted.transaction_count}</p>
+                                    </div>
+                                  )}
+                                </div>
+                                {ocrExtracted.statement_period_start && ocrExtracted.statement_period_end && (
+                                  <p className="text-[9px] text-text-secondary mt-2">
+                                    Statement Period: <strong>{ocrExtracted.statement_period_start}</strong> to <strong>{ocrExtracted.statement_period_end}</strong>
+                                    {ocrExtracted.industry_hint && <> &middot; Industry: <strong>{ocrExtracted.industry_hint}</strong></>}
+                                  </p>
+                                )}
+                                {ocrExtracted._mock && (
+                                  <p className="text-[9px] text-amber-600 mt-1.5 flex items-center gap-1">
+                                    <AlertCircle className="w-3 h-3" /> Demo mode — set GEMINI_API_KEY for real vision extraction
+                                  </p>
+                                )}
+                              </div>
+                            )}
                           </div>
                         ) : (
-                          <div className="border border-border border-dashed rounded p-4 flex flex-col items-center justify-center relative hover:bg-white transition-all bg-white min-h-[90px]">
-                            <Upload className="w-5 h-5 text-text-secondary mb-2" />
-                            <p className="text-[11px] font-semibold text-text-primary">Upload Paper Statement Photo</p>
-                            <p className="text-[9px] text-text-secondary mt-0.5">JPEG or PNG up to 5MB</p>
-                            <input 
-                              type="file" 
-                              accept="image/*"
-                              onChange={handleOcrFileSelect}
-                              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                            />
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {/* Image upload zone */}
+                            <div className="border border-border border-dashed rounded-lg p-4 flex flex-col items-center justify-center relative hover:bg-white hover:border-[#008269]/40 transition-all bg-white min-h-[100px] group cursor-pointer">
+                              <Camera className="w-5 h-5 text-text-secondary mb-2 group-hover:text-[#008269] transition-colors" />
+                              <p className="text-[11px] font-semibold text-text-primary group-hover:text-[#008269] transition-colors">Paper Statement Photo</p>
+                              <p className="text-[9px] text-text-secondary mt-0.5">PNG or JPEG up to 5MB</p>
+                              <input 
+                                type="file" 
+                                accept="image/png,image/jpeg,image/jpg,image/webp"
+                                onChange={handleOcrFileSelect}
+                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                              />
+                            </div>
+                            {/* CSV upload zone */}
+                            <div className="border border-border border-dashed rounded-lg p-4 flex flex-col items-center justify-center relative hover:bg-white hover:border-[#008269]/40 transition-all bg-white min-h-[100px] group cursor-pointer">
+                              <FileSpreadsheet className="w-5 h-5 text-text-secondary mb-2 group-hover:text-[#008269] transition-colors" />
+                              <p className="text-[11px] font-semibold text-text-primary group-hover:text-[#008269] transition-colors">CSV Bank Statement</p>
+                              <p className="text-[9px] text-text-secondary mt-0.5">Exported from net banking</p>
+                              <input 
+                                type="file" 
+                                accept=".csv,text/csv"
+                                onChange={handleOcrFileSelect}
+                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                              />
+                            </div>
                           </div>
                         )}
                       </div>

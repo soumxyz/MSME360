@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, NavLink, Link, useNavigate } from 'react-router-dom';
+import { logout } from '../lib/api';
 import {
   Activity,
   LayoutDashboard,
@@ -111,10 +112,9 @@ const Topbar = ({ onMenuOpen }: { onMenuOpen: () => void }) => {
   }, [showUserMenu]);
 
   const handleSignOut = () => {
-    // Clear any stored session data
-    localStorage.removeItem('user');
+    // Actual auth-token clear + navigate. Previously removed a non-existent key.
+    logout();
     sessionStorage.clear();
-    // Navigate to login
     navigate('/login');
   };
 

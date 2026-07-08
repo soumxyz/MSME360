@@ -1,5 +1,6 @@
-from fastapi import FastAPI, File, HTTPException, UploadFile, Form
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
+import logging
 import pandas as pd
 import os
 import sys
@@ -9,6 +10,12 @@ from datetime import datetime, timezone, date, timedelta
 import random
 import re
 from typing import Optional, List
+
+logger = logging.getLogger("msme360")
+logging.basicConfig(
+    level=os.environ.get("LOG_LEVEL", "INFO"),
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
 
 # Load environment variables from .env file if it exists
 try:
@@ -32,24 +39,291 @@ from agents.risk_intelligence_agent.workflow import evaluate_msme
 from agents.risk_intelligence_agent.schemas import MSMEInput, GSTData, AccountAggregatorData, UPITransaction, EPFOData, BankData
 from creditpilot_orchestrator import get_orchestrator
 from creditpilot_conversation import get_conversation_handler, ConversationRequest
+from auth import (
+    LoginRequest, LoginResponse, UserInfo,
+    authenticate, create_access_token, get_current_user,
+    init_auth_tables, require_customer, require_officer,
+)
 
 app = FastAPI(title="MSME Credit Workspace Backend")
 
+# CORS driven by env var; falls back to a strict localhost allowlist so
+# credentials-cookie/token flows can't be exercised from arbitrary origins.
+_default_origins = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174"
+_allowed_origins = [
+    o.strip() for o in os.environ.get("CORS_ALLOW_ORIGINS", _default_origins).split(",") if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Allow all origins for easier local development
+    allow_origins=_allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 # Initialize database on startup
 init_db()
+init_auth_tables()
 
 @app.get("/api/health")
 def health():
     return {"status": "healthy"}
 
+
+# ============================================================================
+# AUTH ENDPOINTS
+# ============================================================================
+
+@app.post("/api/auth/login", response_model=LoginResponse)
+def login(req: LoginRequest):
+    user = authenticate(req.username, req.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    token, expires = create_access_token(user.username, user.role)
+    return LoginResponse(
+        access_token=token,
+        role=user.role,
+        username=user.username,
+        expires_at=expires.isoformat(),
+    )
+
+
+@app.get("/api/auth/me", response_model=UserInfo)
+def me(user: UserInfo = Depends(get_current_user)):
+    return user
+
+
+# ============================================================================
+# OCR / DOCUMENT INTELLIGENCE ENDPOINT
+# ============================================================================
+
+GEMINI_KEY = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+
+def _extract_via_gemini_vision(image_bytes: bytes, mime_type: str) -> dict:
+    """Use Gemini Vision API to extract bank statement data from an image."""
+    import base64
+    import urllib.request
+    import urllib.error
+
+    b64_data = base64.b64encode(image_bytes).decode("utf-8")
+
+    prompt = """You are analyzing a scanned Indian bank statement image. Extract the following fields as a JSON object. 
+If a field is not visible, return null for it. Be precise with numbers.
+
+Required JSON schema:
+{
+  "business_name": "Name of the business or account holder",
+  "owner_name": "Name of the account holder / proprietor",
+  "account_number": "Bank account number if visible",
+  "ifsc_code": "IFSC code if visible",
+  "bank_name": "Name of the bank",
+  "pan_number": "PAN number if visible (format: ABCDE1234F)",
+  "gstin": "GSTIN if visible",
+  "statement_period_start": "Start date of statement (YYYY-MM-DD)",
+  "statement_period_end": "End date of statement (YYYY-MM-DD)",
+  "total_credits": total credit amount as number,
+  "total_debits": total debit amount as number,
+  "closing_balance": closing balance as number,
+  "average_balance": average balance as number (estimate if not shown),
+  "transaction_count": number of transactions visible,
+  "industry_hint": "Guess the industry from transaction descriptions (e.g., Kirana Store, Textile, Manufacturing)"
+}
+
+Return ONLY the JSON object, no markdown fences or explanations."""
+
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+    headers = {
+        "Content-Type": "application/json",
+        "x-goog-api-key": GEMINI_KEY,
+        "User-Agent": "MSME360-OCR/1.0"
+    }
+    payload = {
+        "contents": [{
+            "parts": [
+                {"text": prompt},
+                {"inline_data": {"mime_type": mime_type, "data": b64_data}}
+            ]
+        }]
+    }
+
+    req = urllib.request.Request(
+        url, data=json.dumps(payload).encode("utf-8"),
+        headers=headers, method="POST"
+    )
+    with urllib.request.urlopen(req, timeout=30) as response:
+        res = json.loads(response.read().decode("utf-8"))
+        raw_text = res["candidates"][0]["content"]["parts"][0]["text"].strip()
+
+        # Strip markdown code fences if Gemini wraps the output
+        if raw_text.startswith("```"):
+            raw_text = re.sub(r"^```(?:json)?\s*", "", raw_text)
+            raw_text = re.sub(r"\s*```$", "", raw_text)
+
+        return json.loads(raw_text)
+
+
+def _extract_from_csv(csv_bytes: bytes, filename: str) -> dict:
+    """Parse a CSV bank statement and extract financial summary fields."""
+    import io
+    df = pd.read_csv(io.BytesIO(csv_bytes))
+    df.columns = [c.strip() for c in df.columns]
+
+    # Coerce numeric columns
+    for col in ["Credit", "Debit", "Running_Balance"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+
+    total_credits = float(df["Credit"].sum()) if "Credit" in df.columns else 0
+    total_debits = float(df["Debit"].sum()) if "Debit" in df.columns else 0
+    avg_bal = float(df["Running_Balance"].mean()) if "Running_Balance" in df.columns else 0
+    closing_bal = float(df["Running_Balance"].iloc[-1]) if "Running_Balance" in df.columns and len(df) > 0 else 0
+    tx_count = len(df)
+
+    # Date range
+    period_start = None
+    period_end = None
+    if "Date" in df.columns:
+        try:
+            df["Date"] = pd.to_datetime(df["Date"])
+            period_start = df["Date"].min().strftime("%Y-%m-%d")
+            period_end = df["Date"].max().strftime("%Y-%m-%d")
+        except Exception:
+            pass
+
+    # Industry hint from transaction descriptions
+    industry_hint = "Retail Merchant"
+    if "Description" in df.columns:
+        desc_text = " ".join(df["Description"].dropna().astype(str).tolist()).lower()
+        if any(w in desc_text for w in ["kirana", "grocery", "fmcg", "parle", "unilever", "britannia"]):
+            industry_hint = "Kirana Store"
+        elif any(w in desc_text for w in ["textile", "fabric", "silk", "garment", "weav"]):
+            industry_hint = "Textile Manufacturing"
+        elif any(w in desc_text for w in ["distributor", "wholesale", "supply chain"]):
+            industry_hint = "FMCG Distribution"
+        elif any(w in desc_text for w in ["agri", "farm", "seed", "fertilizer", "crop"]):
+            industry_hint = "Agri-Processing"
+        elif any(w in desc_text for w in ["steel", "iron", "metal", "casting"]):
+            industry_hint = "Metal & Engineering"
+
+    # Owner name hint from filename
+    owner_hint = None
+    name_from_file = filename.replace(".csv", "").replace("_", " ").replace("-", " ").title()
+    if len(name_from_file) > 3 and not name_from_file.lower().startswith("bank"):
+        owner_hint = name_from_file
+
+    return {
+        "business_name": owner_hint,
+        "owner_name": None,
+        "account_number": None,
+        "ifsc_code": None,
+        "bank_name": None,
+        "pan_number": None,
+        "gstin": None,
+        "statement_period_start": period_start,
+        "statement_period_end": period_end,
+        "total_credits": round(total_credits, 2),
+        "total_debits": round(total_debits, 2),
+        "closing_balance": round(closing_bal, 2),
+        "average_balance": round(avg_bal, 2),
+        "transaction_count": tx_count,
+        "industry_hint": industry_hint
+    }
+
+
+def _mock_image_extraction(filename: str) -> dict:
+    """Fallback mock extraction when no Gemini API key is available."""
+    return {
+        "business_name": "Surat Silk Weaves",
+        "owner_name": "Abhishek Mohapatra",
+        "account_number": "IDBI-302948571",
+        "ifsc_code": "IBKL0000123",
+        "bank_name": "IDBI Bank",
+        "pan_number": "ABCDE5678X",
+        "gstin": "27ABCDE5678X1Z1",
+        "statement_period_start": "2025-01-01",
+        "statement_period_end": "2025-06-30",
+        "total_credits": 2845000.0,
+        "total_debits": 2190000.0,
+        "closing_balance": 87500.0,
+        "average_balance": 72000.0,
+        "transaction_count": 340,
+        "industry_hint": "Manufacturing",
+        "_mock": True,
+        "_note": "Set GEMINI_API_KEY in backend/.env for real Gemini Vision extraction"
+    }
+
+
+@app.post("/api/ocr/extract")
+async def ocr_extract(file: UploadFile = File(...)):
+    """
+    Document Intelligence Endpoint.
+    
+    Accepts:
+    - Image files (PNG/JPEG/WEBP) -> Gemini Vision API extraction
+    - CSV files -> Direct pandas parsing and financial summary extraction
+    
+    Returns extracted fields to pre-fill the registration form.
+    """
+    file_bytes = await file.read()
+    filename = file.filename or "upload"
+    content_type = file.content_type or ""
+
+    is_csv = (
+        filename.lower().endswith(".csv") or
+        "csv" in content_type.lower() or
+        "text/" in content_type.lower()
+    )
+    is_image = (
+        filename.lower().endswith((".png", ".jpg", ".jpeg", ".webp")) or
+        "image/" in content_type.lower()
+    )
+
+    if not is_csv and not is_image:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unsupported file type: {content_type}. Upload a CSV bank statement or an image (PNG/JPEG) of a paper statement."
+        )
+
+    try:
+        if is_csv:
+            extracted = _extract_from_csv(file_bytes, filename)
+            source = "csv_parser"
+        elif GEMINI_KEY:
+            # Determine mime type for Gemini
+            mime = "image/png"
+            if filename.lower().endswith((".jpg", ".jpeg")):
+                mime = "image/jpeg"
+            elif filename.lower().endswith(".webp"):
+                mime = "image/webp"
+            elif "image/" in content_type:
+                mime = content_type
+
+            extracted = _extract_via_gemini_vision(file_bytes, mime)
+            source = "gemini_vision"
+        else:
+            # No API key — return mock data for demo
+            extracted = _mock_image_extraction(filename)
+            source = "mock_fallback"
+
+        return {
+            "success": True,
+            "source": source,
+            "extracted": extracted
+        }
+
+    except Exception as e:
+        logger.exception("OCR extraction failed for %s", filename)
+        # On any extraction failure, return mock data so the UI stays functional
+        # but honestly flag the failure via success=False; the frontend uses this
+        # to display a "manual entry required" hint instead of silently trusting
+        # fabricated numbers.
+        return {
+            "success": False,
+            "source": "mock_fallback",
+            "_error": type(e).__name__,
+            "extracted": _mock_image_extraction(filename),
+            "_error": str(e)
+        }
 
 DATASET_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Dataset")
 
@@ -59,10 +333,10 @@ DATASET_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 try:
     FEAT_DF = pd.read_csv(os.path.join(DATASET_DIR, "engineered_features.csv"))
     LBL_DF = pd.read_csv(os.path.join(DATASET_DIR, "credit_labels.csv"))
-    print(f"✓ Loaded training dataset: {len(FEAT_DF)} businesses (for analytics/training only)")
+    print(f"[OK] Loaded training dataset: {len(FEAT_DF)} businesses (for analytics/training only)")
 except FileNotFoundError:
     # Gracefully handle missing files - not critical for production
-    print("⚠ Training dataset files not found - production features still available")
+    print("[!] Training dataset files not found - production features still available")
     FEAT_DF = pd.DataFrame()
     LBL_DF = pd.DataFrame()
 
@@ -127,7 +401,7 @@ def get_dynamic_profile(business_id: str, name: str, annual_turnover: float, avg
     }
 
 @app.get("/api/portfolio")
-def portfolio():
+def portfolio(_: UserInfo = Depends(require_officer)):
     """
     Returns real-time portfolio of applications.
     ONLY returns user-uploaded applications from custom_businesses table.
@@ -171,10 +445,11 @@ def portfolio():
                 gst_analysis = data.get("gst_analysis", {})
                 if gst_analysis:
                     annual_turnover = gst_analysis.get("annual_turnover", avg_revenue * 12)
-        except Exception as e:
-            # Fallback values if parsing fails
-            print(f"Warning: Could not parse data for {bid}: {e}")
-            pass
+        except (KeyError, ValueError, TypeError, json.JSONDecodeError) as e:
+            # Corrupt or partial JSON: log with the business id so operators can
+            # locate the bad row. We intentionally do NOT swallow arbitrary
+            # exceptions here — programming errors should surface as 500s.
+            logger.warning("portfolio: could not parse data_json for %s: %s", bid, e)
             
         profile = get_dynamic_profile(bid, c["name"], annual_turnover, avg_revenue, int(c["score"]))
         
@@ -207,7 +482,7 @@ def portfolio():
 
 
 @app.get("/api/portfolio/analytics")
-def portfolio_analytics():
+def portfolio_analytics(_: UserInfo = Depends(require_officer)):
     """
     Returns the static training dataset for analytics and model training purposes.
     This data is NOT shown in the officer dashboard - it's for data science/analysis only.
@@ -477,135 +752,172 @@ async def evaluate_credit_risk(msme_input: MSMEInput):
         )
         
         return report
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        # Log the traceback server-side but do not leak it to clients.
+        logger.exception("Unhandled error in endpoint")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+from pydantic import EmailStr, Field, field_validator
 
 
 class QuickRegisterRequest(BaseModel):
-    business_name: str
-    owner_name: str
+    business_name: str = Field(min_length=1, max_length=200)
+    owner_name: str = Field(min_length=1, max_length=200)
     mobile_number: str
-    email: str
+    email: EmailStr
     pan_number: str
     gstin: Optional[str] = None
     udyam_number: Optional[str] = None
     business_type: str
     industry: str
-    years_in_business: int
-    loan_amount_required: float
+    years_in_business: int = Field(ge=0, le=100)
+    loan_amount_required: float = Field(gt=0, le=1_000_000_000)
     loan_purpose: str
-    
+
     # Connection statuses
     connect_gst: bool = False
     connect_aa: bool = False
     connect_upi: bool = False
     connect_epfo: bool = False
-    
+
     # Fallback file names (simulating uploads)
     upload_pan: Optional[str] = None
     upload_aadhaar: Optional[str] = None
     upload_udyam: Optional[str] = None
     upload_bank: Optional[str] = None
 
+    @field_validator("mobile_number")
+    @classmethod
+    def _validate_mobile(cls, v: str) -> str:
+        digits = re.sub(r"\D", "", v)
+        if len(digits) < 10 or len(digits) > 15:
+            raise ValueError("mobile_number must contain 10–15 digits")
+        return digits
+
 
 @app.post("/api/intake/register")
 async def register_msme_application(req: QuickRegisterRequest):
     try:
-        # Generate registration date
-        reg_year = 2026 - max(1, req.years_in_business)
+        # Registration date derived deterministically from stated vintage.
+        # Clamp `years_in_business` to a sane range so `date()` cannot raise on absurd inputs.
+        years = max(1, min(int(req.years_in_business), 100))
+        reg_year = datetime.now(timezone.utc).year - years
         reg_date = date(reg_year, 1, 15)
-        
-        # Ensure valid formats for PAN and GSTIN
+
+        # Reject invalid PAN / GSTIN outright instead of silently substituting a
+        # fabricated identity into the audit trail.
         pan = req.pan_number.strip().upper()
-        if not re.match(r"^[A-Z]{5}[0-9]{4}[A-Z]{1}$", pan):
-            pan = "ABCDE1234F" # fallback to default valid structure if invalid
-            
-        gstin = req.gstin.strip().upper() if req.gstin else f"27{pan}1Z5"
-        if not re.match(r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$", gstin):
+        if not re.match(r"^[A-Z]{5}[0-9]{4}[A-Z]$", pan):
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid PAN format (expected ABCDE1234F)."
+            )
+
+        if req.gstin:
+            gstin = req.gstin.strip().upper()
+            if not re.match(r"^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]{3}$", gstin):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid GSTIN format."
+                )
+        else:
+            # No GSTIN provided — derive a stable placeholder tied to PAN so the
+            # applicant record has a unique key. This is not presented as verified.
             gstin = f"27{pan}1Z5"
-            
-        # 1. GST returns & turnover
+
+        # Track whether each data source is a real live-connected feed or an
+        # estimate derived from stated inputs. Officers see this in the report
+        # so they can distinguish "verified" from "self-declared" data.
+        data_provenance = {
+            "gst": "connected" if req.connect_gst else ("uploaded" if req.upload_pan else "estimated"),
+            "aa": "connected" if req.connect_aa else ("uploaded" if req.upload_bank else "estimated"),
+            "upi": "connected" if req.connect_upi else "estimated",
+            "epfo": "connected" if req.connect_epfo else "estimated",
+        }
+
+        # 1. GST returns & turnover — derived deterministically from stated loan
+        # requirement (a proxy for capacity). No random noise: same input yields
+        # the same output, and the officer can see the derivation is a heuristic.
         annual_turnover = float(req.loan_amount_required) * 2.5
         avg_monthly_rev = annual_turnover / 12
-        
-        monthly_revs = []
-        for i in range(12):
-            variation = random.uniform(0.92, 1.12)
-            monthly_revs.append(round(avg_monthly_rev * variation, 2))
-            
+
+        # Flat monthly figures — we do NOT invent seasonality we cannot verify.
+        monthly_revs = [round(avg_monthly_rev, 2)] * 12
+
         filing_hist = [True] * 12
         if not req.connect_gst:
-            # slightly penalize if not dynamically connected (some late/missing filings)
+            # Un-connected GST means we have no filing history to attest to;
+            # mark two months as missing so the risk agent penalizes appropriately.
             filing_hist[4] = False
             filing_hist[8] = False
-            
+
         gst_data = GSTData(
             gstin=gstin,
             monthly_revenue=monthly_revs,
             filing_history=filing_hist,
             annual_turnover=round(annual_turnover, 2)
         )
-        
-        # 2. Account Aggregator Data
-        balances = []
-        inflows = []
-        outflows = []
-        
-        # Dynamic cash buffer based on whether AA is connected vs fallback bank statement upload
+
+        # 2. Account Aggregator Data — deterministic derivation.
+        # Buffer % encodes how much we trust the cash position: full AA > uploaded bank stmt > self-declared.
         buffer_pct = 0.18 if req.connect_aa else (0.12 if req.upload_bank else 0.05)
-        current_bal = avg_monthly_rev * buffer_pct
-        
-        for i in range(12):
-            inf = avg_monthly_rev * random.uniform(0.95, 1.1)
-            outf = avg_monthly_rev * random.uniform(0.85, 0.96)
-            current_bal += (inf - outf)
-            balances.append(round(current_bal, 2))
-            inflows.append(round(inf, 2))
-            outflows.append(round(outf, 2))
-            
+        balances = [round(avg_monthly_rev * buffer_pct, 2)] * 3
+        # Flat inflow ≈ revenue, flat outflow ≈ 90% of revenue.
+        inflows = [round(avg_monthly_rev, 2)] * 6
+        outflows = [round(avg_monthly_rev * 0.9, 2)] * 6
+
         statement_start = date.today() - timedelta(days=120)
         statement_end = date.today() - timedelta(days=1)
-        
+
         aa_data = AccountAggregatorData(
-            month_end_balances=balances[-3:], # last 3 months
-            monthly_inflows=inflows[-6:], # last 6 months
-            monthly_outflows=outflows[-6:], # last 6 months
+            month_end_balances=balances,
+            monthly_inflows=inflows,
+            monthly_outflows=outflows,
             statement_start_date=statement_start,
             statement_end_date=statement_end
         )
-        
-        # 3. EPFO Data
+
+        # 3. EPFO Data — flat employee count per band; connected feeds get slight
+        # ramp to reflect that real data would show hiring over time.
         emp_counts = [15] * 12
         if req.connect_epfo:
             emp_counts = [12, 12, 12, 13, 13, 14, 14, 14, 15, 15, 16, 16]
         epfo_data = EPFOData(
             monthly_employee_counts=emp_counts
         )
-        
-        # 4. UPI transactions
+
+        # 4. UPI transactions — the *count* signals digital adoption. Use a fixed
+        # per-txn amount tied to revenue so the aggregate makes sense; timestamps
+        # are evenly spaced across the last 90 days.
         upi_txs = []
-        start_dt = datetime.now() - timedelta(days=90)
-        counterparties = ["Zomato Pay", "Swiggy UPI", "Vendor A", "Client X", "Fuel Station", "Raw Materials Ltd", "Rent Account"]
-        
-        # Connect UPI generates more transactions (digital payment ratio)
+        start_dt = datetime.now(timezone.utc) - timedelta(days=90)
+        counterparties = [
+            "Zomato Pay", "Swiggy UPI", "Vendor A", "Client X",
+            "Fuel Station", "Raw Materials Ltd", "Rent Account",
+        ]
         tx_count = 45 if req.connect_upi else 15
+        per_tx_amount = round(max(500.0, avg_monthly_rev / max(tx_count, 1) * 3), 2)
         for i in range(tx_count):
-            tx_date = start_dt + timedelta(days=random.uniform(0.5, 3) * i)
-            amount = round(random.uniform(500, 18000), 2)
+            tx_date = start_dt + timedelta(days=(90 * i) / max(tx_count, 1))
             upi_txs.append(UPITransaction(
-                amount=amount,
+                amount=per_tx_amount,
                 timestamp=tx_date,
-                counterparty=random.choice(counterparties)
+                counterparty=counterparties[i % len(counterparties)],
             ))
-            
-        # 5. Bank EMI
-        total_monthly_emi = 15000.0 if random.choice([True, False]) else 0.0
+
+        # 5. Bank EMI — we cannot know existing loan status without real data.
+        # Assume zero and let officer/data-connect override; do NOT flip a coin.
+        total_monthly_emi = 0.0
+        # Stable account-number placeholder derived from PAN so re-registration
+        # is idempotent instead of getting a new random number every call.
+        pan_hash = abs(hash(pan)) % 900000 + 100000
         bank_data = BankData(
             total_monthly_emi=total_monthly_emi,
-            loan_amounts=[req.loan_amount_required * 0.4] if total_monthly_emi > 0 else [],
-            account_number=f"IDBI-{random.randint(100000, 999999)}"
+            loan_amounts=[],
+            account_number=f"IDBI-{pan_hash}"
         )
         
         # Construct main evaluate input
@@ -620,32 +932,11 @@ async def register_msme_application(req: QuickRegisterRequest):
             bank_data=bank_data
         )
         
-        # Execute workflow via live Risk Intelligence Agent on port 8000
-        import urllib.request
-        url = "http://127.0.0.1:8000/api/v1/evaluate"
-        headers = {
-            "Authorization": "Bearer mock-token",
-            "Content-Type": "application/json"
-        }
-        try:
-            if hasattr(msme_input, "model_dump_json"):
-                payload_bytes = msme_input.model_dump_json().encode("utf-8")
-            else:
-                payload_bytes = msme_input.json().encode("utf-8")
-                
-            req_obj = urllib.request.Request(url, data=payload_bytes, headers=headers, method="POST")
-            with urllib.request.urlopen(req_obj, timeout=10.0) as response:
-                if response.status == 200:
-                    report_data = json.loads(response.read().decode("utf-8"))
-                    print("✓ Successfully executed risk evaluation via Risk Agent API on port 8000")
-                    from agents.risk_intelligence_agent.schemas import AssessmentReport
-                    report = AssessmentReport.model_validate(report_data)
-                else:
-                    print(f"⚠ Risk Agent port 8000 returned status {response.status}, falling back to local workflow")
-                    report = await evaluate_msme(msme_input)
-        except Exception as api_err:
-            print(f"⚠ Risk Agent port 8000 call failed: {api_err}. Falling back to local workflow execution")
-            report = await evaluate_msme(msme_input)
+        # Execute workflow directly (in-process) via the risk intelligence agent.
+        # NOTE: We intentionally do NOT make an HTTP call to ourselves here — doing so
+        # would deadlock uvicorn by consuming the only available worker thread.
+        report = await evaluate_msme(msme_input)
+        print("[OK] Risk evaluation complete via direct in-process evaluate_msme() call")
         
         # Convert report Pydantic model to dictionary resolving date/datetime types
         if hasattr(report, "model_dump_json"):
@@ -681,7 +972,8 @@ async def register_msme_application(req: QuickRegisterRequest):
             "connect_gst": req.connect_gst,
             "connect_aa": req.connect_aa,
             "connect_upi": req.connect_upi,
-            "connect_epfo": req.connect_epfo
+            "connect_epfo": req.connect_epfo,
+            "data_provenance": data_provenance,
         }
         add_custom_business(
             business_id=business_id,
@@ -691,27 +983,40 @@ async def register_msme_application(req: QuickRegisterRequest):
             band=band,
             data_json=json.dumps(save_data)
         )
-        
-        # Log to SQLite audit events
+
+        # Log to SQLite audit events. The summary now records how much of the
+        # input was truly connected vs estimated so the audit trail cannot be
+        # misread as "verified data" when it wasn't.
+        connected_count = sum(1 for v in data_provenance.values() if v == "connected")
         add_audit_event(
-            event_type="score", 
-            business_id=business_id, 
+            event_type="score",
+            business_id=business_id,
             business_name=req.business_name,
-            summary=f"Consent-based data evaluation complete. Score: {score}/100 ({band} Risk)",
+            summary=(
+                f"Data evaluation complete. Score: {score}/100 ({band} Risk). "
+                f"Sources connected: {connected_count}/4 "
+                f"(gst={data_provenance['gst']}, aa={data_provenance['aa']}, "
+                f"upi={data_provenance['upi']}, epfo={data_provenance['epfo']})"
+            ),
             actor="System (Unified)"
         )
-        
+
         return {
             "business_id": business_id,
             "score": score,
             "band": band,
-            "report": report_dict
+            "report": report_dict,
+            "data_provenance": data_provenance,
         }
-        
+
+    except HTTPException:
+        # Preserve 4xx client errors — do not repackage them as opaque 500s.
+        raise
     except Exception as e:
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        # Do not leak raw exception text to clients.
+        raise HTTPException(status_code=500, detail="Internal error during registration.")
 
 
 # Load score_inference dynamically to resolve IDE static analysis warnings
@@ -750,7 +1055,7 @@ class DecisionRequest(BaseModel):
     remarks: str
 
 @app.get("/api/business/{business_id}")
-def business_detail(business_id: str):
+def business_detail(business_id: str, _: UserInfo = Depends(get_current_user)):
     # Check if this is a custom registered business first
     custom_biz = get_custom_business_detail(business_id)
     if custom_biz:
@@ -882,13 +1187,14 @@ def business_detail(business_id: str):
             "applied_at": custom_biz["applied_at"][:10]
         }
 
-    # Run live scoring inference using Agent 2 model (Default Dataset)
-    try:
-        scoring = predict_business(business_id)
-    except ValueError:
+    # Confirm the id exists in the seeded feature set BEFORE we index it.
+    # Previously the code relied on `predict_business` raising ValueError — it
+    # never does, so an unknown id fell through to `iloc[0]` on an empty
+    # DataFrame → IndexError → generic 500 instead of a clean 404.
+    if FEAT_DF is None or "Business_ID" not in FEAT_DF.columns or business_id not in set(FEAT_DF["Business_ID"]):
         raise HTTPException(status_code=404, detail=f"Business {business_id} not found")
-    
-    # Read profile & timeline metadata
+
+    scoring = predict_business(business_id)
     biz_row = FEAT_DF[FEAT_DF["Business_ID"] == business_id].iloc[0]
     
     # Read decision
@@ -977,7 +1283,7 @@ def business_detail(business_id: str):
     }
 
 @app.post("/api/copilot")
-def copilot_query(req: CopilotRequest):
+def copilot_query(req: CopilotRequest, _: UserInfo = Depends(get_current_user)):
     # Retrieve scoring details to use as grounding context
     custom_biz = get_custom_business_detail(req.business_id)
     if custom_biz:
@@ -1036,25 +1342,51 @@ def copilot_query(req: CopilotRequest):
 
 ALLOWED_DECISION_STATUSES = {"Approved", "Conditional", "Rejected", "Info Requested", "Pending"}
 
+def _business_exists(business_id: str) -> bool:
+    """True if business_id is either a seeded MSME (in FEAT_DF) or a custom
+    registration in SQLite. Used to reject orphan decision/audit writes."""
+    if get_custom_business_detail(business_id) is not None:
+        return True
+    try:
+        if FEAT_DF is not None and "Business_ID" in FEAT_DF.columns:
+            return business_id in set(FEAT_DF["Business_ID"])
+    except NameError:
+        pass
+    return False
+
+
 @app.post("/api/decision")
-def save_decision(req: DecisionRequest):
+def save_decision(req: DecisionRequest, _: UserInfo = Depends(require_officer)):
     if req.status not in ALLOWED_DECISION_STATUSES:
-        raise HTTPException(status_code=422, detail=f"Invalid status '{req.status}'. Allowed: {sorted(ALLOWED_DECISION_STATUSES)}")
+        raise HTTPException(
+            status_code=422,
+            detail=f"Invalid status '{req.status}'. Allowed: {sorted(ALLOWED_DECISION_STATUSES)}"
+        )
+    if not _business_exists(req.business_id):
+        # No orphan decisions — writing a status for a nonexistent business would
+        # let any caller create fake audit trail entries via the IDOR path.
+        raise HTTPException(status_code=404, detail=f"Business {req.business_id} not found")
+
     conn = get_db_connection()
-    cursor = conn.cursor()
-    ts = datetime.now(timezone.utc).isoformat()
-    cursor.execute(
-        "INSERT OR REPLACE INTO officer_decisions VALUES (?, ?, ?, ?)",
-        (req.business_id, req.status, req.remarks, ts)
+    try:
+        cursor = conn.cursor()
+        ts = datetime.now(timezone.utc).isoformat()
+        cursor.execute(
+            "INSERT OR REPLACE INTO officer_decisions VALUES (?, ?, ?, ?)",
+            (req.business_id, req.status, req.remarks, ts)
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    add_audit_event(
+        "decision", req.business_id, "MSME Business",
+        f"Decision saved: {req.status}. Remarks: {req.remarks}"
     )
-    conn.commit()
-    conn.close()
-    
-    add_audit_event("decision", req.business_id, "MSME Business", f"Decision saved: {req.status}. Remarks: {req.remarks}")
     return {"status": "success"}
 
 @app.get("/api/audit")
-def get_audit_trail():
+def get_audit_trail(_: UserInfo = Depends(require_officer)):
     return get_audit_events()
 
 
@@ -1066,6 +1398,7 @@ def get_audit_trail():
 async def creditpilot_analyze(
     business_id: str,
     bank_file: UploadFile = File(...),
+    _current_user: UserInfo = Depends(require_officer),
     gst_file: UploadFile = File(None),
     msme_data: str = Form(...)  # JSON string of MSMEInput data
 ):
@@ -1122,14 +1455,16 @@ async def creditpilot_analyze(
         
         return analysis
         
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        # Log the traceback server-side but do not leak it to clients.
+        logger.exception("Unhandled error in endpoint")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.post("/api/creditpilot/chat")
-async def creditpilot_chat(req: ConversationRequest):
+async def creditpilot_chat(req: ConversationRequest, _: UserInfo = Depends(get_current_user)):
     """
     CreditPilot AI Conversational Interface
     
@@ -1179,14 +1514,16 @@ async def creditpilot_chat(req: ConversationRequest):
         
         return response
         
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+    except HTTPException:
+        raise
+    except Exception:
+        # Log the traceback server-side but do not leak it to clients.
+        logger.exception("Unhandled error in endpoint")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.get("/api/creditpilot/status/{business_id}")
-def creditpilot_status(business_id: str):
+def creditpilot_status(business_id: str, _: UserInfo = Depends(get_current_user)):
     """
     Get CreditPilot analysis status for a business.
     

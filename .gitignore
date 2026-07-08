@@ -47,6 +47,25 @@ backend/msme_workspace.db
 .env
 .env.local
 *.env
+!.env.example
+
+# Large fixture / training data — belongs in Git LFS or external storage.
+Dataset/bank_transactions.csv
+*.csv
+!indian_kirana_medium_risk.csv
+!large_indian_distributor_1500_rows.csv
+!Dataset/features.csv
+!Dataset/labels.csv
+
+# Orphaned root DB (empty, superseded by backend/msme_workspace.db).
+/msme360.db
+
+# Superseded scaffolding kept in-tree for reference; do not add new files.
+# Agent 1/
+# Agent 3/
+
+# IDE/Tooling local config
+.claude/
 
 
 

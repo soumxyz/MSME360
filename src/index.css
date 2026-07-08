@@ -1,23 +1,48 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --bg-gradient-start: #f6f8fb;
+    --bg-gradient-end: #e9eff5;
+    --accent-glow: rgba(0, 131, 111, 0.15);
+  }
+
   body {
-    @apply bg-background text-text-primary font-sans antialiased;
+    @apply text-text-primary font-sans antialiased;
+    background-color: var(--bg-gradient-end);
+    background-image: 
+      radial-gradient(at 0% 0%, var(--bg-gradient-start) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, var(--accent-glow) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, #ffffff 0px, transparent 50%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display tracking-tight;
   }
 
   .tnum {
     font-variant-numeric: tabular-nums;
   }
 
-  /* Visible keyboard focus everywhere (WCAG 2.4.7) without affecting mouse users */
+  /* Premium Glassmorphism Panel */
+  .glass-panel {
+    @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl shadow-slate-200/50 rounded-2xl;
+  }
+
+  .glass-card {
+    @apply bg-white/60 backdrop-blur-md border border-white/50 shadow-lg shadow-slate-200/40 rounded-xl hover:bg-white/80 transition-all duration-300;
+  }
+
   :focus-visible {
     outline: 2px solid theme("colors.primary.DEFAULT");
     outline-offset: 2px;
-    border-radius: 2px;
+    border-radius: 4px;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -30,3 +55,4 @@
     }
   }
 }
+

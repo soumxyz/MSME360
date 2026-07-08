@@ -159,7 +159,7 @@ class CreditPilotOrchestrator:
             "findings": self._extract_risk_findings(risk_dict),
             "fraud_flags": risk_dict.get("fraud_flags", {}),
             "policy_violations": risk_dict.get("policy_violations", []),
-            "full_report": risk_dict
+            "full_report": risk_dict,
         }
         
         # =====================================================================
@@ -170,7 +170,8 @@ class CreditPilotOrchestrator:
         summary, recommendation, agent_insights = self._synthesize_analysis(
             financial_validation,
             risk_assessment,
-            business_id
+            business_id,
+            msme_input_data,
         )
         
         conversational_context = self._build_conversational_context(
@@ -242,24 +243,26 @@ class CreditPilotOrchestrator:
         self,
         financial: Dict,
         risk: Dict,
-        business_id: str
+        business_id: str,
+        msme_input_data: Optional[Dict[str, Any]] = None,
     ) -> tuple:
         """Synthesize insights from both agents into final recommendation"""
-        
+
         score = risk["score"]
         risk_category = risk["risk_category"]
         confidence = risk["confidence"]
-        
+
         # Determine decision
+        msme_input_data = msme_input_data or {}
         if financial["status"] == "RED":
             decision = "REJECT"
             loan_amount = 0
         elif score >= 75:
             decision = "APPROVE"
-            loan_amount = self._calculate_loan_amount(risk, score)
+            loan_amount = self._calculate_loan_amount(risk, score, msme_input_data)
         elif score >= 55:
             decision = "CONDITIONAL_APPROVAL"
-            loan_amount = self._calculate_loan_amount(risk, score) * 0.8
+            loan_amount = self._calculate_loan_amount(risk, score, msme_input_data) * 0.8
         else:
             decision = "REJECT"
             loan_amount = 0
@@ -294,20 +297,45 @@ class CreditPilotOrchestrator:
         
         return summary, recommendation, agent_insights
     
-    def _calculate_loan_amount(self, risk: Dict, score: int) -> float:
-        """Calculate recommended loan amount based on risk profile"""
-        # Base on average monthly revenue if available
-        full_report = risk.get("full_report", {})
-        
-        # Extract revenue from report
-        monthly_revenue = 600000  # Default ₹6 lakh
-        
-        # Loan amount = 3x monthly revenue, adjusted by score
+    def _calculate_loan_amount(self, risk: Dict, score: int, msme_input_data: Optional[Dict] = None) -> float:
+        """Calculate recommended loan amount from the applicant's actual monthly revenue.
+
+        Priority order for the revenue signal:
+          1. Mean of `gst_data.monthly_revenue` from the input (real GST filings, when present)
+          2. `annual_turnover / 12` from GST data
+          3. Mean of `account_aggregator_data.monthly_inflows` (bank inflow proxy)
+          4. Report-level `financial_health.monthly_revenue` if the risk agent surfaces it
+        Only if all four are absent do we fall back to a stated constant; that constant is
+        no longer a headline number pretending to be derived.
+        """
+        monthly_revenue: Optional[float] = None
+
+        def _mean(seq):
+            vals = [float(v) for v in (seq or []) if v is not None]
+            return sum(vals) / len(vals) if vals else None
+
+        if msme_input_data:
+            gst = msme_input_data.get("gst_data") or {}
+            monthly_revenue = _mean(gst.get("monthly_revenue"))
+            if monthly_revenue is None and gst.get("annual_turnover"):
+                monthly_revenue = float(gst["annual_turnover"]) / 12
+            if monthly_revenue is None:
+                aa = msme_input_data.get("account_aggregator_data") or {}
+                monthly_revenue = _mean(aa.get("monthly_inflows"))
+
+        if monthly_revenue is None:
+            fin_health = (risk.get("full_report") or {}).get("financial_health") or {}
+            if fin_health.get("monthly_revenue"):
+                monthly_revenue = float(fin_health["monthly_revenue"])
+
+        # Last-resort fallback: signal via zero rather than a made-up ₹6L constant.
+        if monthly_revenue is None or monthly_revenue <= 0:
+            return 0.0
+
         base_amount = monthly_revenue * 3
         score_multiplier = score / 100
-        
         recommended = base_amount * score_multiplier
-        
+
         # Cap at ₹20 lakh max
         return min(recommended, 2000000)
     

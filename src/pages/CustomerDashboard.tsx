@@ -227,7 +227,7 @@ export default function CustomerDashboard() {
     return (
       <div className="p-6 text-center text-error">
         <p className="font-semibold">Error loading your dashboard</p>
-        <p className="text-xs mt-1">Make sure the FastAPI server is running on port 8001.</p>
+        <p className="text-xs mt-1">Make sure the FastAPI server is running on port 8000.</p>
       </div>
     );
   }

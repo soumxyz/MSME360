@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Clipboard, Check, Download, X } from "lucide-react";
 import type { BusinessDetail } from "../lib/api/types";
 import { formatINR, formatDate } from "../lib/format";
@@ -11,6 +11,24 @@ interface MemoModalProps {
 
 export function MemoModal({ isOpen, onClose, business }: MemoModalProps) {
   const [copied, setCopied] = useState(false);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
+
+  // Focus management: capture the element that opened the modal, focus the
+  // close button on mount, and restore focus on close. Escape closes the modal.
+  useEffect(() => {
+    if (!isOpen) return;
+    previouslyFocused.current = document.activeElement as HTMLElement | null;
+    closeBtnRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      previouslyFocused.current?.focus?.();
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -91,16 +109,26 @@ Final decisioning resides with the IDBI credit officer.
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-      <div className="relative w-full max-w-3xl rounded-card border border-border bg-white shadow-2xl p-6 flex flex-col max-h-[90vh]">
-        {/* Modal Header */}
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="memo-modal-title"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full max-w-3xl rounded-card border border-border bg-white shadow-2xl p-6 flex flex-col max-h-[90vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between pb-4 border-b border-border mb-4">
           <div>
-            <h3 className="text-lg font-bold text-text-primary">Credit Evaluation Memo</h3>
+            <h3 id="memo-modal-title" className="text-lg font-bold text-text-primary">Credit Evaluation Memo</h3>
             <p className="text-xs text-text-secondary">Draft evaluation record for {business.profile.name}</p>
           </div>
           <button
+            ref={closeBtnRef}
             onClick={onClose}
+            aria-label="Close credit memo dialog"
             className="rounded-lg p-1 text-text-secondary hover:bg-background-muted hover:text-text-primary transition-colors"
           >
             <X className="w-5 h-5" />

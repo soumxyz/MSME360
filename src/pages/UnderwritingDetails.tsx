@@ -15,7 +15,7 @@ import {
 } from 'recharts';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
-import { useBusinessDetail } from '../lib/api/hooks';
+import { useBusinessDetail, useInvalidateBusiness } from '../lib/api/hooks';
 import { submitDecision } from '../lib/api';
 import { PageSkeleton } from '../components/Skeleton';
 import { BRAND, CHART_TOOLTIP_STYLE, AXIS_TICK } from '../lib/palette';
@@ -25,6 +25,7 @@ import { formatINR, formatINRCompact, formatPct } from '../lib/format';
 export default function UnderwritingDetails() {
   const { id } = useParams();
   const { data, isLoading, error, refetch } = useBusinessDetail(id);
+  const invalidateBusiness = useInvalidateBusiness();
   
   const [remarks, setRemarks] = useState('');
   const [remarksError, setRemarksError] = useState<string | null>(null);
@@ -64,7 +65,7 @@ export default function UnderwritingDetails() {
     return (
       <div className="p-6 text-center text-error">
         <p className="font-semibold">Error loading assessment details</p>
-        <p className="text-xs mt-1">Make sure the FastAPI server is running on port 8001.</p>
+        <p className="text-xs mt-1">Make sure the FastAPI server is running on port 8000.</p>
         <Link to="/officer/applications" className="inline-flex items-center gap-2 mt-4 text-sm font-medium text-primary hover:underline">
           <ArrowLeft className="w-4 h-4" /> Back to Queue
         </Link>
@@ -115,6 +116,9 @@ export default function UnderwritingDetails() {
       });
 
       setRemarks('');
+      // Broadcast the change to portfolio/audit/detail queries so every open
+      // officer view refreshes immediately rather than after the next poll tick.
+      invalidateBusiness(data.business_id);
       refetch();
     } catch (e) {
       setSubmitError('Failed to submit decision.');
@@ -147,6 +151,60 @@ export default function UnderwritingDetails() {
   };
 
   const score = Math.round(data.score.score);
+  const riskBand = data.score.band; // "Low" | "Medium" | "High"
+  const confidencePct = Math.round(data.score.confidence * 100);
+  const modelDecision = data.recommendation.decision; // "Approve" | "Conditional Approval" | "Reject"
+  const recommendedLoanINR = data.recommendation.loan_amount;
+
+  // Derived Financial-Health-Card sub-scores from real metrics.
+  // Each returns 0–100. Clamped so a single wild input can't crash the layout.
+  const clamp = (n: number, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, n));
+  const revenueStability = Math.round(clamp(100 - data.metrics.income_volatility * 100));
+  const cashFlowScore = Math.round(clamp(data.metrics.monthly_savings_rate * 100 + 50));
+  const businessGrowth = Math.round(clamp(50 + data.metrics.revenue_growth * 100));
+  const complianceScore = Math.round(clamp(data.metrics.gst_regularity * 100));
+  const liquidityScore = Math.round(clamp(data.metrics.cash_buffer_days * 1.2));
+
+  // Verdict → colour/copy mapping. Tailwind's JIT cannot expand `bg-${var}/5`
+  // template strings, so each variant is a static class string.
+  const TONE_CLASSES: Record<"success" | "warning" | "error", { badge: string; card: string; label: string }> = {
+    success: {
+      badge: "text-success bg-success/10 border-success/20",
+      card: "bg-success/5 border-success/20",
+      label: "text-success",
+    },
+    warning: {
+      badge: "text-warning bg-warning/10 border-warning/20",
+      card: "bg-warning/5 border-warning/20",
+      label: "text-warning",
+    },
+    error: {
+      badge: "text-error bg-error/10 border-error/20",
+      card: "bg-error/5 border-error/20",
+      label: "text-error",
+    },
+  };
+  const verdictLabel =
+    modelDecision === "Approve" ? "APPROVE"
+    : modelDecision === "Conditional Approval" ? "CONDITIONAL"
+    : "REJECT";
+  const verdictTone: keyof typeof TONE_CLASSES =
+    modelDecision === "Approve" ? "success"
+    : modelDecision === "Conditional Approval" ? "warning"
+    : "error";
+  const riskLevelLabel = riskBand; // "Low" | "Medium" | "High"
+  const riskLevelTone: keyof typeof TONE_CLASSES =
+    riskBand === "Low" ? "success"
+    : riskBand === "Medium" ? "warning"
+    : "error";
+  const repaymentScore =
+    data.metrics.cash_buffer_days >= 60 && data.metrics.emi_ratio < 0.4 ? "High"
+    : data.metrics.cash_buffer_days >= 30 ? "Moderate"
+    : "Low";
+  const repaymentTone: keyof typeof TONE_CLASSES =
+    repaymentScore === "High" ? "success"
+    : repaymentScore === "Moderate" ? "warning"
+    : "error";
 
   // Map 12-month trends from backend for chart (convert values to Lakhs for readability)
   const chartData = data.trends.map((t: any) => {
@@ -200,7 +258,8 @@ Risk Analysis & Delinquency Check:
 - Transaction ledger analysis indicates low fraud markers.
 
 Recommendation:
-Pre-qualified for a term loan of INR 18.5 Lakhs at 9.2% interest. Approval confidence index is 94%.
+Pre-qualified for a term loan of ${formatINRCompact(recommendedLoanINR)} at ${data.recommendation.interest_band}. Tenure: ${data.recommendation.tenure_months} months. Approval confidence index is ${confidencePct}%.
+Model decision: ${modelDecision}.
 
 Prepared by: CreditPilot AI`;
     setCreditMemoText(draftText);
@@ -213,7 +272,7 @@ Prepared by: CreditPilot AI`;
     } else if (agent === 'compliance') {
       setActiveAgentInfo("Risk & Compliance Agent findings:\n- Registered registries checks (PAN, Aadhaar, Udyam status) returned active and valid.\n- Fraud heuristics check completed. Flagged circular transaction warning for officer manual override.\n- Delinquency payment history scan shows 2 delays (30+ DPD) in linked allied accounts.");
     } else if (agent === 'credit') {
-      setActiveAgentInfo(`CreditPilot AI findings:\n- Run composite scoring models. Pre-qualified credit score set to ${score}/100.\n- Formulated repayment capacity. Recommending credit exposure capped at ₹18.5 Lakhs.`);
+      setActiveAgentInfo(`CreditPilot AI findings:\n- Run composite scoring models. Pre-qualified credit score set to ${score}/100.\n- Formulated repayment capacity. Recommending credit exposure capped at ${formatINRCompact(recommendedLoanINR)}.`);
     }
   };
 
@@ -283,8 +342,8 @@ Prepared by: CreditPilot AI`;
             </div>
             
             <div className="flex flex-col items-end gap-1.5 text-right">
-              <span className="text-xs text-text-secondary">Requested Amount</span>
-              <span className="text-xl font-extrabold text-primary">₹20.0 Lakh</span>
+              <span className="text-xs text-text-secondary">Recommended Loan</span>
+              <span className="text-xl font-extrabold text-primary">{formatINRCompact(recommendedLoanINR)}</span>
               <span className="text-[10px] font-bold text-warning uppercase tracking-wider bg-warning/10 px-2.5 py-0.5 rounded border border-warning/20">
                 Under AI Review
               </span>
@@ -292,7 +351,7 @@ Prepared by: CreditPilot AI`;
           </div>
         </div>
 
-        {/* SECTION 2: AI Executive Summary */}
+        {/* SECTION 2: AI Executive Summary — driven by data.score / data.recommendation */}
         <div className="bg-white border border-border rounded-card p-6 shadow-card">
           <h3 className="text-xs font-bold text-text-primary uppercase tracking-wider mb-4 border-b border-border pb-2">AI Executive Summary</h3>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
@@ -302,53 +361,53 @@ Prepared by: CreditPilot AI`;
             </div>
             <div className="p-4 bg-[#fafafa] border border-border rounded text-center">
               <span className="text-[10px] text-text-secondary uppercase font-bold block mb-1">Risk Level</span>
-              <span className="text-xs font-bold text-warning uppercase tracking-wider bg-warning/10 border border-warning/20 px-2.5 py-1 rounded inline-block mt-1">
-                Medium-Low
+              <span className={`text-xs font-bold uppercase tracking-wider border px-2.5 py-1 rounded inline-block mt-1 ${TONE_CLASSES[riskLevelTone].badge}`}>
+                {riskLevelLabel}
               </span>
             </div>
             <div className="p-4 bg-[#fafafa] border border-border rounded text-center">
               <span className="text-[10px] text-text-secondary uppercase font-bold block mb-1">Repayment Capacity</span>
-              <span className="text-xs font-bold text-success uppercase tracking-wider bg-success/10 border border-success/20 px-2.5 py-1 rounded inline-block mt-1">
-                High
+              <span className={`text-xs font-bold uppercase tracking-wider border px-2.5 py-1 rounded inline-block mt-1 ${TONE_CLASSES[repaymentTone].badge}`}>
+                {repaymentScore}
               </span>
             </div>
             <div className="p-4 bg-[#fafafa] border border-border rounded text-center">
               <span className="text-[10px] text-text-secondary uppercase font-bold block mb-1">Recommended Loan</span>
-              <span className="text-xl font-bold text-primary block">₹18.5 Lakh</span>
-              <span className="text-[9px] text-text-secondary font-medium">Confidence: 94%</span>
+              <span className="text-xl font-bold text-primary block">{formatINRCompact(recommendedLoanINR)}</span>
+              <span className="text-[9px] text-text-secondary font-medium">Confidence: {confidencePct}%</span>
             </div>
-            <div className="p-4 bg-success/5 border border-success/20 rounded text-center flex flex-col justify-center items-center">
-              <span className="text-[10px] text-success uppercase font-bold block mb-1">Overall Verdict</span>
-              <span className="text-sm font-extrabold text-success uppercase tracking-widest flex items-center gap-1">
-                <Check className="w-4 h-4" /> APPROVE
+            <div className={`p-4 rounded text-center flex flex-col justify-center items-center border ${TONE_CLASSES[verdictTone].card}`}>
+              <span className={`text-[10px] uppercase font-bold block mb-1 ${TONE_CLASSES[verdictTone].label}`}>Overall Verdict</span>
+              <span className={`text-sm font-extrabold uppercase tracking-widest flex items-center gap-1 ${TONE_CLASSES[verdictTone].label}`}>
+                <Check className="w-4 h-4" /> {verdictLabel}
               </span>
             </div>
           </div>
         </div>
 
-        {/* SECTION 3: Financial Health Card */}
+        {/* SECTION 3: Financial Health Card — sub-scores derived from data.metrics */}
         <div className="bg-white border border-border rounded-card p-6 shadow-card">
           <h3 className="text-xs font-bold text-text-primary uppercase tracking-wider mb-4 border-b border-border pb-2">Financial Health Card</h3>
           <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <div className="bg-background-muted p-3.5 rounded border border-border text-center">
               <span className="text-[10px] text-text-secondary uppercase font-bold block">Revenue Stability</span>
-              <span className="text-lg font-bold text-text-primary block mt-1">92</span>
+              <span className="text-lg font-bold text-text-primary block mt-1">{revenueStability}</span>
             </div>
             <div className="bg-background-muted p-3.5 rounded border border-border text-center">
               <span className="text-[10px] text-text-secondary uppercase font-bold block">Cash Flow</span>
-              <span className="text-lg font-bold text-text-primary block mt-1">90</span>
+              <span className="text-lg font-bold text-text-primary block mt-1">{cashFlowScore}</span>
             </div>
             <div className="bg-background-muted p-3.5 rounded border border-border text-center">
               <span className="text-[10px] text-text-secondary uppercase font-bold block">Business Growth</span>
-              <span className="text-lg font-bold text-text-primary block mt-1">88</span>
+              <span className="text-lg font-bold text-text-primary block mt-1">{businessGrowth}</span>
             </div>
             <div className="bg-background-muted p-3.5 rounded border border-border text-center">
               <span className="text-[10px] text-text-secondary uppercase font-bold block">Compliance</span>
-              <span className="text-lg font-bold text-text-primary block mt-1">95</span>
+              <span className="text-lg font-bold text-text-primary block mt-1">{complianceScore}</span>
             </div>
             <div className="bg-background-muted p-3.5 rounded border border-border text-center">
               <span className="text-[10px] text-text-secondary uppercase font-bold block">Liquidity</span>
-              <span className="text-lg font-bold text-text-primary block mt-1">87</span>
+              <span className="text-lg font-bold text-text-primary block mt-1">{liquidityScore}</span>
             </div>
             <div className="bg-primary/5 p-3.5 rounded border border-primary/20 text-center">
               <span className="text-[10px] text-primary uppercase font-extrabold block">Overall Score</span>
@@ -371,15 +430,15 @@ Prepared by: CreditPilot AI`;
                   <span className="text-[9px] font-medium text-success bg-success/10 px-1.5 py-0.5 rounded">Completed</span>
                 </h4>
                 <div className="space-y-1 text-[10px] text-text-secondary mt-2">
-                  <p>• Revenue Growth: <strong className="text-text-primary">18%</strong></p>
-                  <p>• Cash Flow: <strong className="text-text-primary">Healthy</strong></p>
-                  <p>• Liquidity: <strong className="text-text-primary">Good</strong></p>
+                  <p>• Revenue Growth: <strong className="text-text-primary">{calculatedYoYText}</strong></p>
+                  <p>• Cash Flow: <strong className="text-text-primary">{cashFlowScore >= 75 ? "Healthy" : cashFlowScore >= 50 ? "Adequate" : "Strained"}</strong></p>
+                  <p>• Liquidity: <strong className="text-text-primary">{liquidityScore >= 75 ? "Good" : liquidityScore >= 50 ? "Moderate" : "Tight"}</strong></p>
                 </div>
               </div>
               <span className="text-[9px] text-primary hover:underline font-semibold block mt-4 text-right">Click to expand details →</span>
             </button>
-            
-            <button 
+
+            <button
               onClick={() => handleAgentClick('compliance')}
               className="p-4 bg-[#fafafa] border border-border hover:border-primary/45 rounded text-left flex flex-col justify-between cursor-pointer transition-colors"
             >
@@ -389,9 +448,9 @@ Prepared by: CreditPilot AI`;
                   <span className="text-[9px] font-medium text-success bg-success/10 px-1.5 py-0.5 rounded">Completed</span>
                 </h4>
                 <div className="space-y-1 text-[10px] text-text-secondary mt-2">
-                  <p>• Fraud Risk: <strong className="text-text-primary">Low</strong></p>
-                  <p>• GST Compliance: <strong className="text-text-primary">Excellent</strong></p>
-                  <p>• Existing Loan: <strong className="text-text-primary">Machinery Loan</strong></p>
+                  <p>• Fraud Risk: <strong className="text-text-primary">{(data.fraud_flags?.length ?? 0) === 0 ? "Low" : `${data.fraud_flags?.length} flag(s)`}</strong></p>
+                  <p>• GST Compliance: <strong className="text-text-primary">{complianceScore >= 90 ? "Excellent" : complianceScore >= 70 ? "Good" : "Weak"}</strong></p>
+                  <p>• Existing Loan: <strong className="text-text-primary">{data.profile.existing_loan ? `EMI ${formatINRCompact(data.profile.existing_emi)}/mo` : "None"}</strong></p>
                 </div>
               </div>
               <span className="text-[9px] text-primary hover:underline font-semibold block mt-4 text-right">Click to expand details →</span>
@@ -821,39 +880,54 @@ Prepared by: CreditPilot AI`;
           </div>
         </div>
 
-        {/* SECTION 13: Audit Timeline */}
+        {/* SECTION 13: Audit Timeline — derived from data.applied_at + officer_status */}
         <div className="bg-white border border-border rounded-card p-6 shadow-card">
           <h3 className="text-xs font-bold text-text-primary uppercase tracking-wider mb-4 pb-2 border-b border-border flex items-center gap-1.5">
             <Clock className="w-4 h-4 text-text-secondary" /> Audit Timeline (Audit Trail)
           </h3>
-          
-          <div className="relative border-l-2 border-border pl-4 ml-2 space-y-4 text-[10px] leading-relaxed">
-            <div className="relative">
-              <div className="absolute -left-[21px] top-0.5 w-2 h-2 rounded-full bg-success" />
-              <span className="text-[10px] font-bold text-[#008269] block">10:31 AM</span>
-              <span className="text-text-secondary">GST Analysis Complete</span>
-            </div>
-            <div className="relative">
-              <div className="absolute -left-[21px] top-0.5 w-2 h-2 rounded-full bg-success" />
-              <span className="text-[10px] font-bold text-[#008269] block">10:32 AM</span>
-              <span className="text-text-secondary">Cash Flow Analysis Complete</span>
-            </div>
-            <div className="relative">
-              <div className="absolute -left-[21px] top-0.5 w-2 h-2 rounded-full bg-success" />
-              <span className="text-[10px] font-bold text-[#008269] block">10:33 AM</span>
-              <span className="text-text-secondary">Risk Assessment Complete</span>
-            </div>
-            <div className="relative">
-              <div className="absolute -left-[21px] top-0.5 w-2 h-2 rounded-full bg-[#008269]" />
-              <span className="text-[10px] font-bold text-[#008269] block">10:34 AM</span>
-              <span className="text-text-secondary">Recommendation Generated</span>
-            </div>
-            <div className="relative border-b-0 pb-0">
-              <div className="absolute -left-[21px] top-0.5 w-2 h-2 rounded-full bg-warning" />
-              <span className="text-[10px] font-bold text-warning block">10:35 AM</span>
-              <span className="text-text-secondary">Officer Decision Pending</span>
-            </div>
-          </div>
+
+          {(() => {
+            const applied = new Date(data.applied_at);
+            const fmt = (offsetMins: number) => {
+              const d = new Date(applied.getTime() + offsetMins * 60_000);
+              return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+            };
+            const officerActed =
+              data.officer_status !== "Pending";
+            return (
+              <div className="relative border-l-2 border-border pl-4 ml-2 space-y-4 text-[10px] leading-relaxed">
+                <div className="relative">
+                  <div className="absolute -left-[21px] top-0.5 w-2 h-2 rounded-full bg-success" />
+                  <span className="text-[10px] font-bold text-[#008269] block">{fmt(0)}</span>
+                  <span className="text-text-secondary">Application submitted</span>
+                </div>
+                <div className="relative">
+                  <div className="absolute -left-[21px] top-0.5 w-2 h-2 rounded-full bg-success" />
+                  <span className="text-[10px] font-bold text-[#008269] block">{fmt(1)}</span>
+                  <span className="text-text-secondary">Financial Intelligence Agent — data validated</span>
+                </div>
+                <div className="relative">
+                  <div className="absolute -left-[21px] top-0.5 w-2 h-2 rounded-full bg-success" />
+                  <span className="text-[10px] font-bold text-[#008269] block">{fmt(2)}</span>
+                  <span className="text-text-secondary">Risk Intelligence Agent — score {score}/100, {riskBand} risk</span>
+                </div>
+                <div className="relative">
+                  <div className="absolute -left-[21px] top-0.5 w-2 h-2 rounded-full bg-[#008269]" />
+                  <span className="text-[10px] font-bold text-[#008269] block">{fmt(3)}</span>
+                  <span className="text-text-secondary">Recommendation generated ({modelDecision})</span>
+                </div>
+                <div className="relative border-b-0 pb-0">
+                  <div className={`absolute -left-[21px] top-0.5 w-2 h-2 rounded-full ${officerActed ? "bg-success" : "bg-warning"}`} />
+                  <span className={`text-[10px] font-bold block ${officerActed ? "text-[#008269]" : "text-warning"}`}>
+                    {officerActed ? fmt(4) : "—"}
+                  </span>
+                  <span className="text-text-secondary">
+                    {officerActed ? `Officer status: ${data.officer_status}` : "Officer decision pending"}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
       </div>

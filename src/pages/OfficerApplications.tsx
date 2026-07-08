@@ -48,10 +48,13 @@ const RiskBadge = ({ risk }: { risk: string }) => {
   return <span className="text-error font-semibold text-sm">High</span>;
 };
 
+const STATUS_FILTERS = ['Pending', 'Approved', 'Rejected', 'Conditional', 'Info Requested', 'All'] as const;
+type StatusFilter = typeof STATUS_FILTERS[number];
+
 export default function OfficerApplications() {
   const { data, isLoading, error } = usePortfolio();
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('Pending');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('Pending');
 
   if (isLoading) {
     return <PageSkeleton label="Loading applications queue" />;
@@ -68,22 +71,18 @@ export default function OfficerApplications() {
 
   const portfolioRows = (data || []) as PortfolioRow[];
 
-  // Filter to show only real-time applications (Pending status)
-  const realtimeApps = portfolioRows.filter((r: PortfolioRow) => r.officer_status === 'Pending');
+  // Stats reflect the *full* portfolio so counters don't jump when the filter changes.
+  const totalApps = portfolioRows.length;
+  const pendingCount = portfolioRows.filter(r => r.officer_status === 'Pending').length;
+  const approvedCount = portfolioRows.filter(r => r.officer_status === 'Approved').length;
+  const rejectedCount = portfolioRows.filter(r => r.officer_status === 'Rejected').length;
+  const conditionalCount = portfolioRows.filter(r => r.officer_status === 'Conditional').length;
 
-  // --- Dynamic Stats Computations ---
-  const totalApps = realtimeApps.length;
-  const pendingCount = realtimeApps.filter((r: PortfolioRow) => r.officer_status === 'Pending').length;
-  const approvedCount = portfolioRows.filter((r: PortfolioRow) => r.officer_status === 'Approved').length;
-  const rejectedCount = portfolioRows.filter((r: PortfolioRow) => r.officer_status === 'Rejected').length;
-  const conditionalCount = portfolioRows.filter((r: PortfolioRow) => r.officer_status === 'Conditional').length;
-
-  // --- Filter and Search logic ---
-  const filteredData = realtimeApps.filter((app: PortfolioRow) => {
-    const matchesSearch = app.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          app.business_id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'All Statuses' || 
-                          app.officer_status === statusFilter;
+  // Apply the user-selected status filter — 'All' means don't filter.
+  const filteredData = portfolioRows.filter((app: PortfolioRow) => {
+    const q = searchTerm.toLowerCase();
+    const matchesSearch = !q || app.name.toLowerCase().includes(q) || app.business_id.toLowerCase().includes(q);
+    const matchesStatus = statusFilter === 'All' || app.officer_status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -130,13 +129,24 @@ export default function OfficerApplications() {
                 />
               </div>
               {searchTerm && (
-                <button 
-                  onClick={() => setSearchTerm('')} 
+                <button
+                  onClick={() => setSearchTerm('')}
                   className="text-xs text-primary hover:text-primary-hover font-medium"
                 >
                   Clear
                 </button>
               )}
+              <label className="sr-only" htmlFor="statusFilter">Filter by status</label>
+              <select
+                id="statusFilter"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                className="px-3 py-2 border border-border rounded text-sm bg-white focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              >
+                {STATUS_FILTERS.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
             </div>
           </div>
         </div>

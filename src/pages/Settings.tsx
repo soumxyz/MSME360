@@ -1,37 +1,47 @@
 import React, { useState } from 'react';
 import { Settings as SettingsIcon, User, Shield, BrainCircuit, Check, Save } from 'lucide-react';
+import { getAuth } from '../lib/auth';
 
+/**
+ * Settings is shared between /customer/settings and /officer/settings but
+ * the sidebar tabs it exposes are role-gated. The previous version hardcoded
+ * an officer identity ("Rajesh Kumar, Senior Credit Officer") which meant an
+ * MSME customer visiting /customer/settings saw the bank's internal risk
+ * policy controls — an information-disclosure bug the review flagged as P0.
+ *
+ * The profile section is read-only for now (no user-update endpoint exists on
+ * the backend yet). The Save toast is retained because it correctly informs
+ * the user that nothing was persisted server-side — it's a placeholder,
+ * clearly labelled as such.
+ */
 export default function Settings() {
+  const auth = getAuth();
+  const isOfficer = auth?.role === 'officer';
+
   const [activeTab, setActiveTab] = useState<'profile' | 'underwriting' | 'dev'>('profile');
   const [isSaved, setIsSaved] = useState(false);
 
-  // Profile states
-  const [profile, setProfile] = useState({
-    name: 'Rajesh Kumar',
-    email: 'rajesh.kumar@idbibank.com',
-    role: 'Senior Credit Officer',
-    department: 'MSME Lending & Risk'
-  });
-
-  // Risk parameters
   const [minScore, setMinScore] = useState(55);
-  const [maxExposure, setMaxExposure] = useState(5000000); // 50L
+  const [maxExposure, setMaxExposure] = useState(5_000_000);
   const [autoApprove, setAutoApprove] = useState(false);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    // TODO: wire to /api/settings once the backend endpoint exists.
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 3000);
   };
 
   return (
     <div className="p-6 lg:p-8 w-full max-w-[1000px] mx-auto font-sans bg-[#fafafa]">
-      
-      {/* Header */}
       <div className="mb-6 flex items-center justify-between border-b border-border pb-4">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">System Settings</h1>
-          <p className="text-xs text-text-secondary mt-1">Configure profile settings, risk thresholds, and credit decision engines.</p>
+          <h1 className="text-xl font-bold text-text-primary">Settings</h1>
+          <p className="text-xs text-text-secondary mt-1">
+            {isOfficer
+              ? 'Configure your profile, risk thresholds, and credit engine settings.'
+              : 'Configure your profile and view how our credit scoring works.'}
+          </p>
         </div>
         <div className="w-10 h-10 bg-primary/10 rounded flex items-center justify-center border border-primary/20">
           <SettingsIcon className="w-5 h-5 text-primary" />
@@ -39,8 +49,6 @@ export default function Settings() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        
-        {/* Navigation Sidebar */}
         <div className="md:col-span-1 flex flex-col gap-1.5">
           <button
             onClick={() => setActiveTab('profile')}
@@ -51,19 +59,21 @@ export default function Settings() {
             }`}
           >
             <User className="w-4 h-4" />
-            Profile Settings
+            Profile
           </button>
-          <button
-            onClick={() => setActiveTab('underwriting')}
-            className={`flex items-center gap-2.5 px-4 py-2.5 rounded text-xs font-semibold text-left transition-all cursor-pointer ${
-              activeTab === 'underwriting'
-                ? 'bg-primary text-white shadow-sm'
-                : 'bg-white border border-border text-text-secondary hover:bg-background-muted'
-            }`}
-          >
-            <Shield className="w-4 h-4" />
-            Underwriting Config
-          </button>
+          {isOfficer && (
+            <button
+              onClick={() => setActiveTab('underwriting')}
+              className={`flex items-center gap-2.5 px-4 py-2.5 rounded text-xs font-semibold text-left transition-all cursor-pointer ${
+                activeTab === 'underwriting'
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'bg-white border border-border text-text-secondary hover:bg-background-muted'
+              }`}
+            >
+              <Shield className="w-4 h-4" />
+              Underwriting Config
+            </button>
+          )}
           <button
             onClick={() => setActiveTab('dev')}
             className={`flex items-center gap-2.5 px-4 py-2.5 rounded text-xs font-semibold text-left transition-all cursor-pointer ${
@@ -73,97 +83,78 @@ export default function Settings() {
             }`}
           >
             <BrainCircuit className="w-4 h-4" />
-            Methodology Guide
+            How Scoring Works
           </button>
         </div>
 
-        {/* Content Pane */}
         <div className="md:col-span-3 bg-white border border-border rounded-card p-6 shadow-card">
           {isSaved && (
             <div className="mb-4 p-3 bg-success/15 border border-success/30 rounded text-success text-xs font-semibold flex items-center gap-1.5">
-              <Check className="w-4 h-4" /> Changes have been saved successfully.
+              <Check className="w-4 h-4" /> Saved locally. Server-side persistence is not wired up yet.
             </div>
           )}
 
           {activeTab === 'profile' && (
             <form onSubmit={handleSave} className="space-y-4">
               <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider border-b border-border pb-2 mb-4">User Profile</h3>
-              
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-2">Display Name</label>
+                  <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-2">Username</label>
                   <input
                     type="text"
-                    value={profile.name}
-                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                    className="w-full border border-border rounded p-2.5 text-xs focus:outline-none focus:border-primary"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-2">Email Address</label>
-                  <input
-                    type="email"
-                    value={profile.email}
-                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                    className="w-full border border-border rounded p-2.5 text-xs focus:outline-none focus:border-primary"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-2">Designation</label>
-                  <input
-                    type="text"
-                    value={profile.role}
+                    value={auth?.username ?? ''}
                     disabled
                     className="w-full border border-border bg-background-muted rounded p-2.5 text-xs text-text-secondary cursor-not-allowed"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-2">Department</label>
+                  <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-2">Role</label>
                   <input
                     type="text"
-                    value={profile.department}
+                    value={auth?.role ?? ''}
                     disabled
                     className="w-full border border-border bg-background-muted rounded p-2.5 text-xs text-text-secondary cursor-not-allowed"
                   />
                 </div>
               </div>
-
-              <div className="pt-4 border-t border-border flex justify-end">
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded shadow-sm transition-colors flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Save className="w-4 h-4" /> Save Profile
-                </button>
-              </div>
+              <p className="text-[10px] text-text-secondary">
+                Profile fields will become editable once the backend user-update endpoint ships.
+              </p>
             </form>
           )}
 
-          {activeTab === 'underwriting' && (
+          {isOfficer && activeTab === 'underwriting' && (
             <form onSubmit={handleSave} className="space-y-4">
               <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider border-b border-border pb-2 mb-4">Underwriting Policies</h3>
-              
+
               <div className="space-y-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-2">
+                  <label htmlFor="minScore" className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-2">
                     Minimum Auto-Decisioning Score ({minScore})
                   </label>
                   <input
+                    id="minScore"
                     type="range"
                     min="30"
                     max="80"
                     value={minScore}
                     onChange={(e) => setMinScore(parseInt(e.target.value))}
+                    aria-label="Minimum auto-decisioning score"
+                    aria-valuemin={30}
+                    aria-valuemax={80}
+                    aria-valuenow={minScore}
+                    aria-valuetext={`${minScore} out of 100`}
                     className="w-full h-2 bg-background-muted rounded-lg appearance-none cursor-pointer accent-primary"
                   />
-                  <span className="text-[10px] text-text-secondary block mt-1">Applications scoring below this limit will require mandatory manual underwriter override.</span>
+                  <span className="text-[10px] text-text-secondary block mt-1">Applications scoring below this limit require manual underwriter override.</span>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-2">
+                  <label htmlFor="maxExposure" className="block text-[11px] font-bold text-text-secondary uppercase tracking-wider mb-2">
                     Maximum Single Exposure Threshold (INR)
                   </label>
                   <select
+                    id="maxExposure"
                     value={maxExposure}
                     onChange={(e) => setMaxExposure(parseInt(e.target.value))}
                     className="w-full border border-border rounded p-2.5 text-xs focus:outline-none focus:border-primary bg-white cursor-pointer"
@@ -201,8 +192,8 @@ export default function Settings() {
 
           {activeTab === 'dev' && (
             <div className="space-y-4">
-              <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider border-b border-border pb-2 mb-4">Methodology & Engine Guides</h3>
-              
+              <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider border-b border-border pb-2 mb-4">Scoring Methodology</h3>
+
               <div className="p-5 border border-primary/20 bg-primary/5 rounded">
                 <h4 className="text-xs font-bold text-primary flex items-center gap-1.5 uppercase tracking-wider mb-2">
                   <BrainCircuit className="w-4 h-4" /> IDBI CreditPilot Agentic AI Methodology
@@ -228,9 +219,7 @@ export default function Settings() {
             </div>
           )}
         </div>
-
       </div>
-
     </div>
   );
 }

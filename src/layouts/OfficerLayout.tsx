@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
+import { logout } from '../lib/api';
 import {
   Activity,
   LayoutDashboard,
@@ -137,10 +138,9 @@ const Topbar = ({ onMenuOpen }: { onMenuOpen: () => void }) => {
   };
 
   const handleSignOut = () => {
-    // Clear any stored session data
-    localStorage.removeItem('user');
+    // Actual auth-token clear + navigate. Previously removed a non-existent key.
+    logout();
     sessionStorage.clear();
-    // Navigate to login
     navigate('/login');
   };
 
@@ -206,14 +206,6 @@ const Topbar = ({ onMenuOpen }: { onMenuOpen: () => void }) => {
 
 export default function OfficerLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = () => {
-      // This will be handled by the Topbar component
-    };
-    return () => {};
-  }, []);
 
   return (
     <div className="min-h-screen bg-background font-sans selection:bg-primary selection:text-white flex">
