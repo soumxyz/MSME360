@@ -73,7 +73,7 @@ export default function Login() {
           <div className="w-10 h-10 bg-white rounded flex items-center justify-center">
             <ShieldCheck className="w-6 h-6 text-[#008269]" />
           </div>
-          <span className="font-bold text-xl tracking-tight">IDBI CreditPulse AI Portal</span>
+          <span className="font-bold text-xl tracking-tight">IDBI MSME 360 AI Portal</span>
         </div>
 
         <div className="z-10 space-y-6 max-w-sm">

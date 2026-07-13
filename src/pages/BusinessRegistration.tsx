@@ -451,7 +451,7 @@ export default function BusinessRegistration() {
             <div className="w-8 h-8 bg-[#008269] rounded flex items-center justify-center">
               <Activity className="w-5 h-5 text-white" />
             </div>
-            <span className="font-semibold text-lg text-[#008269] tracking-tight">MSME360 CreditPulse</span>
+            <span className="font-semibold text-lg text-[#008269] tracking-tight">MSME 360</span>
           </div>
           <button 
             onClick={() => navigate('/login')} 

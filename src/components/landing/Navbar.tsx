@@ -19,11 +19,11 @@ export function Navbar() {
       }`}
     >
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background p-1 -ml-1 transition-shadow" aria-label="CreditPulse Home">
+        <Link to="/" className="flex items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background p-1 -ml-1 transition-shadow" aria-label="MSME 360 Home">
           <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center shadow-card">
             <Activity className="w-5 h-5 text-white" aria-hidden="true" />
           </div>
-          <span className="font-display font-bold text-xl text-primary tracking-tight">CreditPulse</span>
+          <span className="font-display font-bold text-xl text-primary tracking-tight">MSME 360</span>
         </Link>
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-text-secondary">
           <a href="#features" className="hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-sm">Platform</a>

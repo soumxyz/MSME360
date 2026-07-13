@@ -226,7 +226,7 @@ const ReportFooter = () => (
       <p className="text-xs font-semibold text-text-primary flex items-center justify-end gap-1">
         <ShieldCheck className="w-3 h-3 text-success" aria-hidden="true" /> Digital Signature
       </p>
-      <p className="text-[10px] text-text-secondary">CreditPulse AI Engine</p>
+      <p className="text-[10px] text-text-secondary">MSME 360 AI Engine</p>
     </div>
   </div>
 );

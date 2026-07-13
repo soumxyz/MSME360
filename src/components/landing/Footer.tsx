@@ -13,7 +13,7 @@ export function Footer() {
               <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
                 <Activity className="w-4 h-4 text-white" aria-hidden="true" />
               </div>
-              <span className="font-display font-bold text-xl text-white">CreditPulse AI</span>
+              <span className="font-display font-bold text-xl text-white">MSME 360 AI</span>
             </div>
             <p className="text-gray-400 leading-relaxed max-w-sm">
               The intelligent underwriting layer for modern financial institutions. Scaling MSME credit safely.

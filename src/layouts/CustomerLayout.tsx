@@ -48,7 +48,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => (
         <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
           <Activity className="w-5 h-5 text-white" aria-hidden="true" />
         </div>
-        <span className="font-semibold text-lg text-primary tracking-tight">CreditPulse AI</span>
+        <span className="font-semibold text-lg text-primary tracking-tight">MSME 360 AI</span>
       </Link>
     </div>
 
