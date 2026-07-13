@@ -47,15 +47,21 @@ from auth import (
 
 app = FastAPI(title="MSME Credit Workspace Backend")
 
-# CORS driven by env var; falls back to a strict localhost allowlist so
-# credentials-cookie/token flows can't be exercised from arbitrary origins.
-_default_origins = "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174"
-_allowed_origins = [
-    o.strip() for o in os.environ.get("CORS_ALLOW_ORIGINS", _default_origins).split(",") if o.strip()
+# CORS: allow explicit origins from env var + always allow *.vercel.app previews and localhost.
+# Use allow_origin_regex so Vercel preview URLs (e.g. msme360-xyz.vercel.app) work without
+# needing a manual env update on every deployment.
+_explicit_origins = [
+    o.strip()
+    for o in os.environ.get(
+        "CORS_ALLOW_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174"
+    ).split(",")
+    if o.strip()
 ]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_allowed_origins,
+    allow_origins=_explicit_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
