@@ -37,10 +37,10 @@ export function Navbar() {
             Officer Portal
           </Link>
           <Link 
-            to="/login?role=customer" 
+            to="/register" 
             className="bg-primary hover:bg-primary-hover text-white px-5 py-2.5 rounded-card shadow-card transition-all hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
-            Apply Now
+            Start Assessment
           </Link>
         </div>
       </div>

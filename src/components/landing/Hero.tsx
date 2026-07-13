@@ -61,17 +61,12 @@ export function Hero() {
             <FadeIn delay={0.4}>
               <div className="flex flex-wrap items-center gap-4">
                 <Link 
-                  to="/login?role=customer" 
+                  to="/register" 
                   className="group bg-primary hover:bg-primary-hover text-white px-8 py-4 rounded-card font-semibold flex items-center gap-2 transition-all shadow-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                 >
-                  Start Application 
+                  Start Assessment 
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" aria-hidden="true" />
                 </Link>
-                <button 
-                  className="bg-white hover:bg-gray-50 border border-border text-text-primary px-8 py-4 rounded-card font-medium transition-colors shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                >
-                  View Demo
-                </button>
               </div>
             </FadeIn>
           </motion.div>
