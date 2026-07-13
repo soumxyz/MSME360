@@ -56,6 +56,8 @@ Dataset/bank_transactions.csv
 !large_indian_distributor_1500_rows.csv
 !Dataset/features.csv
 !Dataset/labels.csv
+!Dataset/engineered_features.csv
+!Dataset/credit_labels.csv
 
 # Orphaned root DB (empty, superseded by backend/msme_workspace.db).
 /msme360.db
@@ -69,3 +71,5 @@ Dataset/bank_transactions.csv
 
 
 
+.vercel
+.env*
