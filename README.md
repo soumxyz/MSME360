@@ -9,6 +9,30 @@ Two role-based experiences:
   see the AI-driven risk score with SHAP-style factor attribution, chat with the
   Credit Copilot, and record Approve/Reject/Conditional decisions.
 
+## Multi-Agent Architecture (CreditPilot)
+
+The workspace orchestrates three specialized AI agents to evaluate credit applications:
+
+1. **Financial Intelligence Agent (Agent 1)** — *Data Quality & Compliance*
+   - Validates CSV file structures and schemas.
+   - Checks date coverage (requires at least 6 months of banking history).
+   - Recalculates accounting flows to ensure the ledger reconciles with 0% drift.
+   - Cross-references bank statement credits against GST sales.
+   - Rejects the application early (RED verdict) if critical data anomalies or gaps are detected.
+
+2. **Risk Intelligence Agent (Agent 2)** — *Credit Risk Assessment*
+   - Orchestrates a modular machine learning pipeline via a LangGraph state graph.
+   - Predicts default probability using an XGBoost model across 8 financial/operational features.
+   - Generates SHAP values for localized feature attribution (explaining what raised or lowered the score).
+   - Cross-checks applications against business policy rules and fraud heuristics.
+   - Employs Google Gemini (or a fallback tree) to translate data into plain-language bullet points.
+
+3. **CreditPilot Copilot (Agent 3)** — *Conversational Synthesis*
+   - Synthesizes findings from Agent 1 and Agent 2 to recommend final lending terms (e.g., dynamically calculating a safe loan offer capped at ₹20 Lakhs based on monthly revenue).
+   - Powers the interactive panel in the underwriting UI for credit officers to query details (e.g., scenario analysis: *"What if we reduce the loan to ₹15 lakh?"*).
+
+---
+
 ## Stack
 
 | Layer     | Choice                                                         |
@@ -18,6 +42,8 @@ Two role-based experiences:
 | ML        | XGBoost model + SHAP explanations (see `risk agent/`)          |
 | Data      | Seeded CSVs in `Dataset/` for demo; SQLite at `backend/msme_workspace.db` |
 
+---
+
 ## Getting started
 
 ### 1. Backend
@@ -26,9 +52,11 @@ Two role-based experiences:
 cd backend
 python -m venv .venv && source .venv/Scripts/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env    # edit JWT_SECRET etc.
+cp .env.example .env    # edit JWT_SECRET and add LLM API keys
 python -m uvicorn main:app --reload --port 8000
 ```
+
+Note: To enable live LLM reasoning and conversational capabilities, add your `GEMINI_API_KEY` (or `GROQ_API_KEY` / `OPENROUTER_API_KEY`) to the `backend/.env` file. If none are provided, the system falls back to a smart mock response engine.
 
 Demo users are seeded on first startup:
 
